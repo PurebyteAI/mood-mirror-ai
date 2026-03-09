@@ -64,10 +64,27 @@ class MoodMirrorAPITester:
         """Test text mood analysis"""
         test_data = {
             "input_type": "text",
-            "content": "I'm feeling really happy today! The sun is shining and everything seems perfect."
+            "content": "I'm feeling really happy today! The sun is shining and everything seems perfect.",
+            "language": "en"
         }
         return self.run_test(
-            "Text Mood Analysis",
+            "Text Mood Analysis (English)",
+            "POST",
+            "analyze",
+            200,
+            data=test_data,
+            timeout=10  # AI call may take longer
+        )
+    
+    def test_text_analysis_german(self):
+        """Test text mood analysis in German"""
+        test_data = {
+            "input_type": "text",
+            "content": "Ich fühle mich heute wirklich glücklich! Die Sonne scheint und alles scheint perfekt zu sein.",
+            "language": "de"
+        }
+        return self.run_test(
+            "Text Mood Analysis (German)",
             "POST",
             "analyze",
             200,
@@ -80,7 +97,8 @@ class MoodMirrorAPITester:
         # Create a simple base64 encoded image data URL for testing vision analysis
         test_data = {
             "input_type": "drawing", 
-            "content": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+            "content": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+            "language": "en"
         }
         return self.run_test(
             "Drawing Mood Analysis (Vision)",
@@ -95,7 +113,8 @@ class MoodMirrorAPITester:
         """Test speech mood analysis"""
         test_data = {
             "input_type": "speech",
-            "content": "I've been feeling a bit stressed lately with work but I'm trying to stay positive and calm"
+            "content": "I've been feeling a bit stressed lately with work but I'm trying to stay positive and calm",
+            "language": "en"
         }
         return self.run_test(
             "Speech Mood Analysis",
@@ -239,6 +258,12 @@ def main():
     if success and text_response:
         tester.validate_analysis_response(text_response)
         analysis_ids.append(text_response.get('id'))
+    
+    print("\n🇩🇪 Testing German Text Analysis...")
+    success, german_response = tester.test_text_analysis_german()
+    if success and german_response:
+        tester.validate_analysis_response(german_response)
+        analysis_ids.append(german_response.get('id'))
 
     print("\n🎨 Testing Drawing Analysis...")  
     success, draw_response = tester.test_drawing_analysis()

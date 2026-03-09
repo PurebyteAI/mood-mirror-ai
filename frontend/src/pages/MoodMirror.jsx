@@ -5,7 +5,9 @@ import { InputSection } from "@/components/mood/InputSection";
 import { MoodResult } from "@/components/mood/MoodResult";
 import { MoodHistory } from "@/components/mood/MoodHistory";
 import { Header } from "@/components/mood/Header";
+import { AmbientControl } from "@/components/mood/AmbientControl";
 import JournalPage from "@/pages/JournalPage";
+import { useTranslation } from "@/i18n";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -14,8 +16,11 @@ const MoodMirror = () => {
   const [analysis, setAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [dominantMood, setDominantMood] = useState(null);
-  const [currentView, setCurrentView] = useState("mirror"); // "mirror" | "history" | "journal"
+  const [currentView, setCurrentView] = useState("mirror");
   const [history, setHistory] = useState([]);
+  const [language, setLanguage] = useState("en");
+
+  const { t } = useTranslation(language);
 
   const analyzeMood = useCallback(async (inputType, content) => {
     setIsAnalyzing(true);
@@ -24,6 +29,7 @@ const MoodMirror = () => {
       const res = await axios.post(`${API}/analyze`, {
         input_type: inputType,
         content: content,
+        language: language,
       });
       setAnalysis(res.data);
       setDominantMood(res.data.dominant_mood);
@@ -32,7 +38,7 @@ const MoodMirror = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, []);
+  }, [language]);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -73,6 +79,9 @@ const MoodMirror = () => {
         <Header
           currentView={currentView}
           onNav={handleNav}
+          language={language}
+          onLanguageChange={setLanguage}
+          t={t}
         />
 
         <AnimatePresence mode="wait">
@@ -85,7 +94,7 @@ const MoodMirror = () => {
               transition={{ duration: 0.4 }}
               className="flex-1"
             >
-              <JournalPage onBack={() => handleNav("mirror")} />
+              <JournalPage onBack={() => handleNav("mirror")} t={t} language={language} />
             </motion.div>
           ) : currentView === "history" ? (
             <motion.div
@@ -96,7 +105,7 @@ const MoodMirror = () => {
               transition={{ duration: 0.4 }}
               className="flex-1"
             >
-              <MoodHistory history={history} />
+              <MoodHistory history={history} t={t} />
             </motion.div>
           ) : analysis ? (
             <motion.div
@@ -107,7 +116,7 @@ const MoodMirror = () => {
               transition={{ duration: 0.5 }}
               className="flex-1 flex items-start justify-center pt-8"
             >
-              <MoodResult analysis={analysis} onReset={resetMirror} />
+              <MoodResult analysis={analysis} onReset={resetMirror} t={t} />
             </motion.div>
           ) : (
             <motion.div
@@ -129,25 +138,30 @@ const MoodMirror = () => {
                   className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Express Yourself
+                  {t("heroTitle")}
                 </h2>
                 <p
                   data-testid="hero-subtitle"
                   className="text-lg md:text-xl font-light leading-relaxed"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  Write, draw, or speak — and let the mirror reveal what lies beneath.
+                  {t("heroSubtitle")}
                 </p>
               </motion.div>
 
               <InputSection
                 onAnalyze={analyzeMood}
                 isAnalyzing={isAnalyzing}
+                t={t}
+                language={language}
               />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Ambient music control */}
+      <AmbientControl mood={dominantMood} label={t("ambientMusic")} />
     </div>
   );
 };

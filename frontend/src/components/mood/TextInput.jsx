@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, Loader2 } from "lucide-react";
 
-export const TextInput = ({ onAnalyze, isAnalyzing }) => {
+export const TextInput = ({ onAnalyze, isAnalyzing, t }) => {
   const [text, setText] = useState("");
 
   const handleSubmit = () => {
@@ -23,7 +23,7 @@ export const TextInput = ({ onAnalyze, isAnalyzing }) => {
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="How are you feeling? Write anything that comes to mind..."
+        placeholder={t("textPlaceholder")}
         rows={5}
         className="w-full bg-transparent resize-none outline-none text-lg font-light leading-relaxed placeholder-opacity-30"
         style={{
@@ -34,7 +34,7 @@ export const TextInput = ({ onAnalyze, isAnalyzing }) => {
       />
       <div className="flex items-center justify-between mt-6 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-          {text.length > 0 ? `${text.length} characters` : "Ctrl+Enter to submit"}
+          {text.length > 0 ? `${text.length} ${t("characters")}` : t("ctrlEnter")}
         </p>
         <motion.button
           data-testid="analyze-text-btn"
@@ -51,12 +51,12 @@ export const TextInput = ({ onAnalyze, isAnalyzing }) => {
           {isAnalyzing ? (
             <>
               <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
-              Analyzing...
+              {t("analyzing")}
             </>
           ) : (
             <>
               <Send size={16} strokeWidth={1.5} />
-              Mirror Me
+              {t("mirrorMe")}
             </>
           )}
         </motion.button>

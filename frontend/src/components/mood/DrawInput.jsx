@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Send, Loader2, RotateCcw } from "lucide-react";
 
-export const DrawInput = ({ onAnalyze, isAnalyzing }) => {
+export const DrawInput = ({ onAnalyze, isAnalyzing, t }) => {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -25,19 +25,11 @@ export const DrawInput = ({ onAnalyze, isAnalyzing }) => {
     ctx.lineJoin = "round";
   }, []);
 
-  useEffect(() => {
-    initCanvas();
-  }, [initCanvas]);
+  useEffect(() => { initCanvas(); }, [initCanvas]);
 
   const getPos = (e) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    if (e.touches) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      };
-    }
+    const rect = canvasRef.current.getBoundingClientRect();
+    if (e.touches) return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
     return { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY };
   };
 
@@ -75,15 +67,12 @@ export const DrawInput = ({ onAnalyze, isAnalyzing }) => {
 
   const handleSubmit = () => {
     if (!hasDrawn || isAnalyzing) return;
-    const canvas = canvasRef.current;
-    // Send the full base64 data URL to the backend for vision analysis
-    const dataUrl = canvas.toDataURL("image/png");
+    const dataUrl = canvasRef.current.toDataURL("image/png");
     onAnalyze("drawing", dataUrl);
   };
 
   return (
     <div className="glass-card p-6 md:p-8" data-testid="draw-input-section">
-      {/* Color palette */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           {COLORS.map((color) => (
@@ -101,87 +90,44 @@ export const DrawInput = ({ onAnalyze, isAnalyzing }) => {
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <input
-            data-testid="brush-size-slider"
-            type="range"
-            min="1"
-            max="12"
-            value={brushSize}
-            onChange={(e) => setBrushSize(Number(e.target.value))}
-            className="w-20 accent-white opacity-50"
-          />
-          <button
-            data-testid="clear-canvas-btn"
-            onClick={clearCanvas}
-            className="p-2 rounded-full transition-all hover:bg-white/10"
-            style={{ color: "var(--text-muted)" }}
-          >
+          <input data-testid="brush-size-slider" type="range" min="1" max="12" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-20 accent-white opacity-50" />
+          <button data-testid="clear-canvas-btn" onClick={clearCanvas} className="p-2 rounded-full transition-all hover:bg-white/10" style={{ color: "var(--text-muted)" }}>
             <RotateCcw size={16} strokeWidth={1.5} />
           </button>
         </div>
       </div>
 
-      {/* Canvas */}
-      <div
-        className="relative rounded-xl overflow-hidden"
-        style={{ border: "1px solid rgba(255,255,255,0.05)" }}
-      >
+      <div className="relative rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.05)" }}>
         <canvas
-          ref={canvasRef}
-          data-testid="drawing-canvas"
-          className="drawing-canvas w-full"
+          ref={canvasRef} data-testid="drawing-canvas" className="drawing-canvas w-full"
           style={{ height: "300px", touchAction: "none" }}
-          onMouseDown={startDraw}
-          onMouseMove={draw}
-          onMouseUp={stopDraw}
-          onMouseLeave={stopDraw}
-          onTouchStart={startDraw}
-          onTouchMove={draw}
-          onTouchEnd={stopDraw}
+          onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
+          onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
         />
         {!hasDrawn && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-sm font-light" style={{ color: "var(--text-muted)" }}>
-              Draw how you feel...
-            </p>
+            <p className="text-sm font-light" style={{ color: "var(--text-muted)" }}>{t("drawPlaceholder")}</p>
           </div>
         )}
       </div>
 
-      {/* Vision analysis badge */}
       <div className="flex items-center gap-2 mt-3">
         <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-          AI Vision enabled — your drawing will be visually analyzed
-        </p>
+        <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>{t("visionEnabled")}</p>
       </div>
 
       <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-        <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-          Express through shapes and colors
-        </p>
+        <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>{t("expressShapes")}</p>
         <motion.button
-          data-testid="analyze-draw-btn"
-          onClick={handleSubmit}
-          disabled={!hasDrawn || isAnalyzing}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          data-testid="analyze-draw-btn" onClick={handleSubmit} disabled={!hasDrawn || isAnalyzing}
+          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
           className="flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{
-            background: "linear-gradient(135deg, #C084FC 0%, #60A5FA 100%)",
-            color: "#030303",
-          }}
+          style={{ background: "linear-gradient(135deg, #C084FC 0%, #60A5FA 100%)", color: "#030303" }}
         >
           {isAnalyzing ? (
-            <>
-              <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
-              Analyzing...
-            </>
+            <><Loader2 size={16} strokeWidth={1.5} className="animate-spin" />{t("analyzing")}</>
           ) : (
-            <>
-              <Send size={16} strokeWidth={1.5} />
-              Mirror Me
-            </>
+            <><Send size={16} strokeWidth={1.5} />{t("mirrorMe")}</>
           )}
         </motion.button>
       </div>

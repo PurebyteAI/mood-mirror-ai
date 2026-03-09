@@ -15,138 +15,84 @@ const MOOD_COLORS = {
   curiosity: "#C084FC", curious: "#C084FC",
 };
 
-const MOOD_LABELS = {
-  happiness: "Happiness", happy: "Happiness",
-  sadness: "Sadness", sad: "Sadness",
-  anger: "Anger", angry: "Anger",
-  calmness: "Calmness", calm: "Calmness",
-  stress: "Stress", stressed: "Stress",
-  curiosity: "Curiosity", curious: "Curiosity",
+const RESPONSE_TYPE_KEYS = {
+  poem: "poem", motivation: "motivation", joke: "joke",
 };
 
-const RESPONSE_LABELS = {
-  poem: "AI Poem",
-  motivation: "Motivational",
-  joke: "Lighthearted",
+const INPUT_TYPE_KEYS = {
+  text: "textInput", drawing: "drawingInput", speech: "speechInput",
 };
 
-export const MoodResult = ({ analysis, onReset }) => {
+export const MoodResult = ({ analysis, onReset, t }) => {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [journalNote, setJournalNote] = useState("");
   const [showNoteInput, setShowNoteInput] = useState(false);
 
   const dominantColor = MOOD_COLORS[analysis.dominant_mood?.toLowerCase()] || "#C084FC";
-  const dominantLabel = MOOD_LABELS[analysis.dominant_mood?.toLowerCase()] || analysis.dominant_mood;
-  const responseLabel = RESPONSE_LABELS[analysis.response_type] || analysis.response_type;
+  const dominantLabel = t(analysis.dominant_mood?.toLowerCase()) || analysis.dominant_mood;
+  const responseLabel = t(RESPONSE_TYPE_KEYS[analysis.response_type] || analysis.response_type);
+  const inputLabel = t(INPUT_TYPE_KEYS[analysis.input_type] || analysis.input_type);
 
   const saveToJournal = async () => {
     setSaving(true);
     try {
-      await axios.post(`${API}/journal/save`, {
-        analysis_id: analysis.id,
-        note: journalNote,
-      });
+      await axios.post(`${API}/journal/save`, { analysis_id: analysis.id, note: journalNote });
       setSaved(true);
       setShowNoteInput(false);
-    } catch (err) {
-      console.error("Failed to save:", err);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { console.error("Failed to save:", err); }
+    finally { setSaving(false); }
   };
 
   return (
     <div className="w-full max-w-3xl" data-testid="mood-result">
-      {/* Back button */}
       <motion.button
-        data-testid="back-to-mirror-btn"
-        onClick={onReset}
-        whileHover={{ scale: 1.05, x: -4 }}
-        whileTap={{ scale: 0.95 }}
+        data-testid="back-to-mirror-btn" onClick={onReset}
+        whileHover={{ scale: 1.05, x: -4 }} whileTap={{ scale: 0.95 }}
         className="flex items-center gap-2 mb-8 text-sm font-medium transition-all"
         style={{ color: "var(--text-secondary)" }}
       >
         <ArrowLeft size={16} strokeWidth={1.5} />
-        New Expression
+        {t("newExpression")}
       </motion.button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Dominant mood + Chart */}
         <div className="space-y-6">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="glass-card p-8 text-center"
-            style={{ boxShadow: `0 0 60px ${dominantColor}22` }}
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
+            className="glass-card p-8 text-center" style={{ boxShadow: `0 0 60px ${dominantColor}22` }}
           >
-            <p className="text-xs font-mono uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
-              Dominant Mood
-            </p>
-            <h3
-              data-testid="dominant-mood"
-              className="font-display text-4xl font-bold mb-2"
-              style={{ color: dominantColor }}
-            >
-              {dominantLabel}
-            </h3>
-            <div
-              className="w-16 h-1 mx-auto rounded-full mt-4"
-              style={{ background: dominantColor }}
-            />
+            <p className="text-xs font-mono uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>{t("dominantMood")}</p>
+            <h3 data-testid="dominant-mood" className="font-display text-4xl font-bold mb-2" style={{ color: dominantColor }}>{dominantLabel}</h3>
+            <div className="w-16 h-1 mx-auto rounded-full mt-4" style={{ background: dominantColor }} />
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4 }}
-            className="glass-card p-6"
-          >
-            <p className="text-xs font-mono uppercase tracking-widest mb-4" style={{ color: "var(--text-muted)" }}>
-              Emotion Breakdown
-            </p>
-            <MoodChart emotions={analysis.emotions} />
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }} className="glass-card p-6">
+            <p className="text-xs font-mono uppercase tracking-widest mb-4" style={{ color: "var(--text-muted)" }}>{t("emotionBreakdown")}</p>
+            <MoodChart emotions={analysis.emotions} t={t} />
           </motion.div>
         </div>
 
-        {/* Right: AI Response + Save */}
         <div className="space-y-4">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-            className="glass-card p-8 flex flex-col"
-            style={{ boxShadow: `0 0 40px ${dominantColor}11` }}
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
+            className="glass-card p-8 flex flex-col" style={{ boxShadow: `0 0 40px ${dominantColor}11` }}
           >
             <div className="flex items-center gap-2 mb-6">
               <Sparkles size={16} strokeWidth={1.5} style={{ color: dominantColor }} />
-              <p className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
-                {responseLabel}
-              </p>
+              <p className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>{responseLabel}</p>
             </div>
-
             <div className="flex-1 flex items-center">
               <div className="relative">
-                <Quote
-                  size={32}
-                  strokeWidth={1}
-                  className="absolute -top-2 -left-2 opacity-20"
-                  style={{ color: dominantColor }}
-                />
-                <p
-                  data-testid="ai-response-text"
-                  className="font-display text-xl md:text-2xl font-normal leading-relaxed pl-8"
-                  style={{ color: "var(--text-primary)", whiteSpace: "pre-line" }}
-                >
+                <Quote size={32} strokeWidth={1} className="absolute -top-2 -left-2 opacity-20" style={{ color: dominantColor }} />
+                <p data-testid="ai-response-text" className="font-display text-xl md:text-2xl font-normal leading-relaxed pl-8" style={{ color: "var(--text-primary)", whiteSpace: "pre-line" }}>
                   {analysis.response_text}
                 </p>
               </div>
             </div>
-
             <div className="mt-8 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
               <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-                Analyzed from: {analysis.input_type} input
+                {t("analyzedFrom")}: {inputLabel}
                 {analysis.input_preview && analysis.input_type !== "drawing" && (
                   <span className="ml-2 italic opacity-60">— "{analysis.input_preview}"</span>
                 )}
@@ -154,72 +100,43 @@ export const MoodResult = ({ analysis, onReset }) => {
             </div>
           </motion.div>
 
-          {/* Save to Journal */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="glass-card p-5"
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="glass-card p-5">
             {saved ? (
               <div className="flex items-center gap-3" data-testid="journal-saved">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(52,211,153,0.15)" }}>
                   <Check size={16} strokeWidth={2} color="#34D399" />
                 </div>
-                <p className="text-sm font-medium" style={{ color: "#34D399" }}>
-                  Saved to your Mood Journal
-                </p>
+                <p className="text-sm font-medium" style={{ color: "#34D399" }}>{t("savedToJournal")}</p>
               </div>
             ) : showNoteInput ? (
               <div className="space-y-3">
                 <textarea
-                  data-testid="journal-note-input"
-                  value={journalNote}
-                  onChange={(e) => setJournalNote(e.target.value)}
-                  placeholder="Add a personal note (optional)..."
-                  rows={2}
+                  data-testid="journal-note-input" value={journalNote} onChange={(e) => setJournalNote(e.target.value)}
+                  placeholder={t("addNote")} rows={2}
                   className="w-full bg-transparent resize-none outline-none text-sm font-light"
                   style={{ color: "var(--text-primary)" }}
                 />
                 <div className="flex items-center gap-2 justify-end">
-                  <button
-                    data-testid="cancel-save-btn"
-                    onClick={() => setShowNoteInput(false)}
-                    className="px-4 py-2 rounded-full text-xs font-medium"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    Cancel
-                  </button>
+                  <button data-testid="cancel-save-btn" onClick={() => setShowNoteInput(false)} className="px-4 py-2 rounded-full text-xs font-medium" style={{ color: "var(--text-muted)" }}>{t("cancel")}</button>
                   <motion.button
-                    data-testid="confirm-save-btn"
-                    onClick={saveToJournal}
-                    disabled={saving}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
+                    data-testid="confirm-save-btn" onClick={saveToJournal} disabled={saving}
+                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                     className="px-5 py-2 rounded-full text-xs font-medium"
-                    style={{
-                      background: dominantColor,
-                      color: "#030303",
-                    }}
+                    style={{ background: dominantColor, color: "#030303" }}
                   >
-                    {saving ? "Saving..." : "Save Entry"}
+                    {saving ? t("saving") : t("saveEntry")}
                   </motion.button>
                 </div>
               </div>
             ) : (
               <motion.button
-                data-testid="save-to-journal-btn"
-                onClick={() => setShowNoteInput(true)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                data-testid="save-to-journal-btn" onClick={() => setShowNoteInput(true)}
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 className="w-full flex items-center justify-center gap-2 py-2 rounded-full text-sm font-medium transition-all"
-                style={{
-                  border: `1px solid ${dominantColor}33`,
-                  color: dominantColor,
-                }}
+                style={{ border: `1px solid ${dominantColor}33`, color: dominantColor }}
               >
                 <BookmarkPlus size={16} strokeWidth={1.5} />
-                Save to Mood Journal
+                {t("saveToJournal")}
               </motion.button>
             )}
           </motion.div>

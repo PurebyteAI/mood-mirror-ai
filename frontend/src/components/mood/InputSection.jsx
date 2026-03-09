@@ -6,17 +6,16 @@ import { DrawInput } from "@/components/mood/DrawInput";
 import { SpeechInput } from "@/components/mood/SpeechInput";
 
 const TABS = [
-  { id: "text", label: "Write", icon: Pen },
-  { id: "draw", label: "Draw", icon: Brush },
-  { id: "speech", label: "Speak", icon: Mic },
+  { id: "text", labelKey: "tabWrite", icon: Pen },
+  { id: "draw", labelKey: "tabDraw", icon: Brush },
+  { id: "speech", labelKey: "tabSpeak", icon: Mic },
 ];
 
-export const InputSection = ({ onAnalyze, isAnalyzing }) => {
+export const InputSection = ({ onAnalyze, isAnalyzing, t, language }) => {
   const [activeTab, setActiveTab] = useState("text");
 
   return (
     <div className="w-full max-w-2xl">
-      {/* Tab selector */}
       <div
         data-testid="input-tabs"
         className="flex items-center justify-center mb-8"
@@ -44,7 +43,7 @@ export const InputSection = ({ onAnalyze, isAnalyzing }) => {
                 }}
               >
                 <Icon size={16} strokeWidth={1.5} />
-                {tab.label}
+                {t(tab.labelKey)}
                 {isActive && (
                   <motion.div
                     layoutId="activeTab"
@@ -62,39 +61,20 @@ export const InputSection = ({ onAnalyze, isAnalyzing }) => {
         </div>
       </div>
 
-      {/* Input content */}
       <AnimatePresence mode="wait">
         {activeTab === "text" && (
-          <motion.div
-            key="text"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
-          >
-            <TextInput onAnalyze={onAnalyze} isAnalyzing={isAnalyzing} />
+          <motion.div key="text" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
+            <TextInput onAnalyze={onAnalyze} isAnalyzing={isAnalyzing} t={t} />
           </motion.div>
         )}
         {activeTab === "draw" && (
-          <motion.div
-            key="draw"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
-          >
-            <DrawInput onAnalyze={onAnalyze} isAnalyzing={isAnalyzing} />
+          <motion.div key="draw" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
+            <DrawInput onAnalyze={onAnalyze} isAnalyzing={isAnalyzing} t={t} />
           </motion.div>
         )}
         {activeTab === "speech" && (
-          <motion.div
-            key="speech"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
-          >
-            <SpeechInput onAnalyze={onAnalyze} isAnalyzing={isAnalyzing} />
+          <motion.div key="speech" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
+            <SpeechInput onAnalyze={onAnalyze} isAnalyzing={isAnalyzing} t={t} language={language} />
           </motion.div>
         )}
       </AnimatePresence>

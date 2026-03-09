@@ -31,7 +31,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 # Models
 class MoodAnalysisRequest(BaseModel):
     input_type: Literal["text", "drawing", "speech"]
-    content: str  # text/speech content or base64 data URL for drawings
+    content: str
+    language: Literal["en", "de"] = "en"
     
 class EmotionScore(BaseModel):
     emotion: str
@@ -65,7 +66,8 @@ class SaveToJournalRequest(BaseModel):
     analysis_id: str
     note: str = ""
 
-JSON_FORMAT = """{
+JSON_FORMAT = """
+{
   "emotions": [
     {"emotion": "happiness", "score": 0.0},
     {"emotion": "sadness", "score": 0.0},
@@ -77,35 +79,51 @@ JSON_FORMAT = """{
   "dominant_mood": "the strongest detected emotion",
   "response_type": "poem or motivation or joke",
   "response_text": "A creative personalized response"
-}"""
+}
+"""
 
-TEXT_PROMPT = """You are an advanced AI Mood Mirror. Analyze the emotional state behind the user's input and respond with a JSON object.
+LANG_INSTRUCTIONS = {
+    "en": "Respond entirely in English.",
+    "de": "Antworte vollständig auf Deutsch. The JSON keys must remain in English, but the response_text value must be in German.",
+}
 
-The user expressed themselves through {input_type}. Here is their input:
-"{content}"
-
-Respond ONLY with a valid JSON object in this exact format (no markdown, no code blocks):
-""" + JSON_FORMAT + """
-
+RULES_TEXT = """
 Rules:
 - Scores must be between 0.0 and 1.0 and sum to approximately 1.0
 - Be creative and empathetic in your response
 - If poem: a short 4-6 line poem. If motivation: an uplifting message. If joke: a lighthearted joke
 - The response should directly reflect or react to the detected emotions"""
 
-DRAWING_PROMPT = """You are an advanced AI Mood Mirror with vision capabilities. You are looking at a hand-drawn image created by a user as an emotional expression.
-
-Analyze the visual elements of this drawing — colors used, shapes, patterns, intensity of strokes, and overall composition — to determine the emotional state of the artist.
-
-Respond ONLY with a valid JSON object in this exact format (no markdown, no code blocks):
-""" + JSON_FORMAT + """
-
+RULES_DRAWING = """
 Rules:
 - Scores must be between 0.0 and 1.0 and sum to approximately 1.0
 - Interpret the drawing's visual language: dark heavy strokes may indicate stress, bright colors happiness, flowing lines calmness, sharp angles anger, etc.
 - Be creative and empathetic in your response
 - If poem: a short 4-6 line poem. If motivation: an uplifting message. If joke: a lighthearted joke
 - The response should reflect what you see in the drawing"""
+
+
+def build_text_prompt(input_type, content, lang_instruction):
+    return (
+        "You are an advanced AI Mood Mirror. Analyze the emotional state behind the user's input and respond with a JSON object.\n\n"
+        f"The user expressed themselves through {input_type}. Here is their input:\n"
+        f'"{content}"\n\n'
+        f"{lang_instruction}\n\n"
+        "Respond ONLY with a valid JSON object in this exact format (no markdown, no code blocks):\n"
+        f"{JSON_FORMAT}\n"
+        f"{RULES_TEXT}"
+    )
+
+
+def build_drawing_prompt(lang_instruction):
+    return (
+        "You are an advanced AI Mood Mirror with vision capabilities. You are looking at a hand-drawn image created by a user as an emotional expression.\n\n"
+        "Analyze the visual elements of this drawing — colors used, shapes, patterns, intensity of strokes, and overall composition — to determine the emotional state of the artist.\n\n"
+        f"{lang_instruction}\n\n"
+        "Respond ONLY with a valid JSON object in this exact format (no markdown, no code blocks):\n"
+        f"{JSON_FORMAT}\n"
+        f"{RULES_DRAWING}"
+    )
 
 
 def clean_json_response(text):
@@ -117,6 +135,11 @@ def clean_json_response(text):
     cleaned = cleaned.strip()
     if cleaned.startswith("json"):
         cleaned = cleaned[4:].strip()
+    # Try to find JSON object boundaries
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        cleaned = cleaned[start:end + 1]
     return cleaned
 
 
@@ -144,6 +167,8 @@ async def root():
 @api_router.post("/analyze")
 async def analyze_mood(request: MoodAnalysisRequest):
     try:
+        lang_instruction = LANG_INSTRUCTIONS.get(request.language, LANG_INSTRUCTIONS["en"])
+        
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=str(uuid.uuid4()),
@@ -151,27 +176,30 @@ async def analyze_mood(request: MoodAnalysisRequest):
         ).with_model("gemini", "gemini-3-flash-preview")
 
         if request.input_type == "drawing" and request.content.startswith("data:image"):
-            # Vision-based analysis: send the actual image
             header, b64data = request.content.split(",", 1)
-            content_type = header.split(";")[0].split(":")[1]  # e.g. image/png
+            content_type = header.split(";")[0].split(":")[1]
             
             file_content = FileContent(
                 content_type=content_type,
                 file_content_base64=b64data
             )
+            drawing_prompt = build_drawing_prompt(lang_instruction)
             user_message = UserMessage(
-                text=DRAWING_PROMPT,
+                text=drawing_prompt,
                 file_contents=[file_content]
             )
         else:
-            prompt = TEXT_PROMPT.format(
+            prompt = build_text_prompt(
                 input_type=request.input_type,
-                content=request.content
+                content=request.content,
+                lang_instruction=lang_instruction
             )
             user_message = UserMessage(text=prompt)
 
         response_text = await chat.send_message(user_message)
+        logger.info(f"Raw Gemini response (first 500 chars): {response_text[:500]}")
         cleaned = clean_json_response(response_text)
+        logger.info(f"Cleaned JSON (first 300 chars): {cleaned[:300]}")
         
         try:
             result = json.loads(cleaned)
@@ -198,7 +226,9 @@ async def analyze_mood(request: MoodAnalysisRequest):
         return analysis
 
     except Exception as e:
-        logger.error(f"Analysis error: {e}")
+        logger.error(f"Analysis error type={type(e).__name__}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         result = make_fallback()
         input_preview = "[Drawing]" if request.input_type == "drawing" else request.content[:100]
         fallback = MoodAnalysisResponse(

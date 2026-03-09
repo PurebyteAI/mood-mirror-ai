@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Clock, Sparkles, BookOpen } from "lucide-react";
 
-export const Header = ({ currentView, onNav }) => {
+export const Header = ({ currentView, onNav, language, onLanguageChange, t }) => {
   return (
     <motion.header
       data-testid="app-header"
@@ -29,18 +29,43 @@ export const Header = ({ currentView, onNav }) => {
             className="font-display text-xl font-bold tracking-tight"
             style={{ color: "var(--text-primary)" }}
           >
-            Mood Mirror
+            {t("appTitle")}
           </h1>
           <p
             className="text-xs font-mono"
             style={{ color: "var(--text-muted)" }}
           >
-            AI-Powered Emotion Analysis
+            {t("appSubtitle")}
           </p>
         </div>
       </button>
 
       <div className="flex items-center gap-2">
+        {/* Language switcher */}
+        <div
+          data-testid="language-switcher"
+          className="flex items-center gap-0.5 p-1 rounded-full mr-1"
+          style={{
+            background: "rgba(0,0,0,0.4)",
+            border: "1px solid rgba(255,255,255,0.1)",
+          }}
+        >
+          {["en", "de"].map((lang) => (
+            <button
+              key={lang}
+              data-testid={`lang-${lang}`}
+              onClick={() => onLanguageChange(lang)}
+              className="px-3 py-1.5 rounded-full text-xs font-mono font-semibold uppercase transition-all duration-200"
+              style={{
+                background: language === lang ? "rgba(255,255,255,0.12)" : "transparent",
+                color: language === lang ? "var(--text-primary)" : "var(--text-muted)",
+              }}
+            >
+              {lang}
+            </button>
+          ))}
+        </div>
+
         <button
           data-testid="nav-journal-btn"
           onClick={() => onNav(currentView === "journal" ? "mirror" : "journal")}
@@ -52,7 +77,7 @@ export const Header = ({ currentView, onNav }) => {
           }}
         >
           <BookOpen size={16} strokeWidth={1.5} />
-          Journal
+          {t("journal")}
         </button>
 
         <button
@@ -66,7 +91,7 @@ export const Header = ({ currentView, onNav }) => {
           }}
         >
           <Clock size={16} strokeWidth={1.5} />
-          History
+          {t("history")}
         </button>
       </div>
     </motion.header>
