@@ -76,18 +76,19 @@ class MoodMirrorAPITester:
         )
 
     def test_drawing_analysis(self):
-        """Test drawing mood analysis"""
+        """Test drawing mood analysis with base64 image"""
+        # Create a simple base64 encoded image data URL for testing vision analysis
         test_data = {
             "input_type": "drawing", 
-            "content": "A simple drawing with bright colors showing a smiling face with sunshine and flowers around it"
+            "content": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
         }
         return self.run_test(
-            "Drawing Mood Analysis",
+            "Drawing Mood Analysis (Vision)",
             "POST",
             "analyze", 
             200,
             data=test_data,
-            timeout=10
+            timeout=15  # Vision analysis may take longer
         )
 
     def test_speech_analysis(self):
@@ -126,6 +127,70 @@ class MoodMirrorAPITester:
             "analyze",
             422,  # Validation error
             data=test_data
+        )
+
+    def test_save_to_journal(self, analysis_id):
+        """Test saving analysis to journal"""
+        test_data = {
+            "analysis_id": analysis_id,
+            "note": "This is a test journal note for my mood reflection."
+        }
+        return self.run_test(
+            "Save Analysis to Journal",
+            "POST",
+            "journal/save",
+            200,
+            data=test_data
+        )
+
+    def test_get_journal(self):
+        """Test getting journal entries"""
+        return self.run_test(
+            "Get Journal Entries",
+            "GET",
+            "journal?days=30",
+            200
+        )
+
+    def test_get_journal_trends(self):
+        """Test getting journal trends"""
+        return self.run_test(
+            "Get Journal Trends",
+            "GET", 
+            "journal/trends?days=30",
+            200
+        )
+
+    def test_delete_journal_entry(self, entry_id):
+        """Test deleting a journal entry"""
+        return self.run_test(
+            "Delete Journal Entry",
+            "DELETE",
+            f"journal/{entry_id}",
+            200
+        )
+
+    def test_save_nonexistent_analysis(self):
+        """Test saving nonexistent analysis to journal"""
+        test_data = {
+            "analysis_id": "nonexistent-id-12345",
+            "note": "This should fail"
+        }
+        return self.run_test(
+            "Save Nonexistent Analysis",
+            "POST",
+            "journal/save",
+            404,
+            data=test_data
+        )
+
+    def test_delete_nonexistent_journal_entry(self):
+        """Test deleting nonexistent journal entry"""
+        return self.run_test(
+            "Delete Nonexistent Entry",
+            "DELETE",
+            "journal/nonexistent-id-12345",
+            404
         )
 
     def validate_analysis_response(self, response_data):
@@ -167,29 +232,54 @@ def main():
         print("\n❌ Root endpoint failed, stopping tests")
         return 1
 
-    # Test mood analysis endpoints
+    # Test mood analysis endpoints and store IDs for journal tests
     print("\n📝 Testing Text Analysis...")
     success, text_response = tester.test_text_analysis()
+    analysis_ids = []
     if success and text_response:
         tester.validate_analysis_response(text_response)
+        analysis_ids.append(text_response.get('id'))
 
     print("\n🎨 Testing Drawing Analysis...")  
     success, draw_response = tester.test_drawing_analysis()
     if success and draw_response:
         tester.validate_analysis_response(draw_response)
+        analysis_ids.append(draw_response.get('id'))
 
     print("\n🎤 Testing Speech Analysis...")
     success, speech_response = tester.test_speech_analysis()
     if success and speech_response:
         tester.validate_analysis_response(speech_response)
+        analysis_ids.append(speech_response.get('id'))
 
     # Test history endpoints
     print("\n📚 Testing History...")
     success, history_response = tester.test_get_history()
 
+    # Test journal endpoints
+    print("\n📖 Testing Journal Features...")
+    
+    # Test saving to journal
+    if analysis_ids:
+        success, save_response = tester.test_save_to_journal(analysis_ids[0])
+    
+    # Test getting journal entries
+    success, journal_response = tester.test_get_journal()
+    
+    # Test getting journal trends 
+    success, trends_response = tester.test_get_journal_trends()
+    
+    # Test deleting journal entry (if we have entries)
+    if journal_response and isinstance(journal_response, list) and len(journal_response) > 0:
+        entry_to_delete = journal_response[0].get('id')
+        if entry_to_delete:
+            success, delete_response = tester.test_delete_journal_entry(entry_to_delete)
+
     # Test error handling
     print("\n🚫 Testing Error Handling...")
     tester.test_invalid_analysis()
+    tester.test_save_nonexistent_analysis()
+    tester.test_delete_nonexistent_journal_entry()
 
     # Print results
     print("\n" + "=" * 60)

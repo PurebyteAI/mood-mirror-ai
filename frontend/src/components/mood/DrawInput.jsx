@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Eraser, Send, Loader2, RotateCcw } from "lucide-react";
+import { Send, Loader2, RotateCcw } from "lucide-react";
 
 export const DrawInput = ({ onAnalyze, isAnalyzing }) => {
   const canvasRef = useRef(null);
@@ -76,9 +76,9 @@ export const DrawInput = ({ onAnalyze, isAnalyzing }) => {
   const handleSubmit = () => {
     if (!hasDrawn || isAnalyzing) return;
     const canvas = canvasRef.current;
+    // Send the full base64 data URL to the backend for vision analysis
     const dataUrl = canvas.toDataURL("image/png");
-    // Describe the drawing for the AI
-    onAnalyze("drawing", `A hand-drawn image on a dark canvas using colors. The drawing was created as an emotional expression. [Image data: ${dataUrl.substring(0, 200)}...]`);
+    onAnalyze("drawing", dataUrl);
   };
 
   return (
@@ -148,7 +148,15 @@ export const DrawInput = ({ onAnalyze, isAnalyzing }) => {
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-6 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      {/* Vision analysis badge */}
+      <div className="flex items-center gap-2 mt-3">
+        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+          AI Vision enabled — your drawing will be visually analyzed
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
           Express through shapes and colors
         </p>

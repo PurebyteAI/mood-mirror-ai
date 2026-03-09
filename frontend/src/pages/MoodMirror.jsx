@@ -5,6 +5,7 @@ import { InputSection } from "@/components/mood/InputSection";
 import { MoodResult } from "@/components/mood/MoodResult";
 import { MoodHistory } from "@/components/mood/MoodHistory";
 import { Header } from "@/components/mood/Header";
+import JournalPage from "@/pages/JournalPage";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -13,7 +14,7 @@ const MoodMirror = () => {
   const [analysis, setAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [dominantMood, setDominantMood] = useState(null);
-  const [showHistory, setShowHistory] = useState(false);
+  const [currentView, setCurrentView] = useState("mirror"); // "mirror" | "history" | "journal"
   const [history, setHistory] = useState([]);
 
   const analyzeMood = useCallback(async (inputType, content) => {
@@ -42,10 +43,10 @@ const MoodMirror = () => {
     }
   }, []);
 
-  const toggleHistory = useCallback(() => {
-    if (!showHistory) fetchHistory();
-    setShowHistory((prev) => !prev);
-  }, [showHistory, fetchHistory]);
+  const handleNav = useCallback((view) => {
+    if (view === "history") fetchHistory();
+    setCurrentView(view);
+  }, [fetchHistory]);
 
   const resetMirror = useCallback(() => {
     setAnalysis(null);
@@ -58,10 +59,8 @@ const MoodMirror = () => {
       className="relative min-h-screen overflow-hidden"
       style={{ background: "#030303" }}
     >
-      {/* Ambient background orb */}
       <MoodOrb mood={dominantMood} />
 
-      {/* Radial gradient overlay */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -70,15 +69,25 @@ const MoodMirror = () => {
         }}
       />
 
-      {/* Main content */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 py-8 min-h-screen flex flex-col">
         <Header
-          onToggleHistory={toggleHistory}
-          showHistory={showHistory}
+          currentView={currentView}
+          onNav={handleNav}
         />
 
         <AnimatePresence mode="wait">
-          {showHistory ? (
+          {currentView === "journal" ? (
+            <motion.div
+              key="journal"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="flex-1"
+            >
+              <JournalPage onBack={() => handleNav("mirror")} />
+            </motion.div>
+          ) : currentView === "history" ? (
             <motion.div
               key="history"
               initial={{ opacity: 0, y: 20 }}
@@ -109,7 +118,6 @@ const MoodMirror = () => {
               transition={{ duration: 0.4 }}
               className="flex-1 flex flex-col items-center justify-center"
             >
-              {/* Hero text */}
               <motion.div
                 className="text-center mb-12 max-w-2xl"
                 initial={{ opacity: 0, y: 30 }}
@@ -128,8 +136,7 @@ const MoodMirror = () => {
                   className="text-lg md:text-xl font-light leading-relaxed"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  Write, draw, or speak — and let the mirror reveal what
-                  lies beneath.
+                  Write, draw, or speak — and let the mirror reveal what lies beneath.
                 </p>
               </motion.div>
 

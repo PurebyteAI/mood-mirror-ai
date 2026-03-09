@@ -1,36 +1,27 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Quote, Sparkles } from "lucide-react";
+import { ArrowLeft, Quote, Sparkles, BookmarkPlus, Check } from "lucide-react";
 import { MoodChart } from "@/components/mood/MoodChart";
+import axios from "axios";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const MOOD_COLORS = {
-  happiness: "#FCD34D",
-  happy: "#FCD34D",
-  sadness: "#60A5FA",
-  sad: "#60A5FA",
-  anger: "#F87171",
-  angry: "#F87171",
-  calmness: "#34D399",
-  calm: "#34D399",
-  stress: "#F97316",
-  stressed: "#F97316",
-  curiosity: "#C084FC",
-  curious: "#C084FC",
+  happiness: "#FCD34D", happy: "#FCD34D",
+  sadness: "#60A5FA", sad: "#60A5FA",
+  anger: "#F87171", angry: "#F87171",
+  calmness: "#34D399", calm: "#34D399",
+  stress: "#F97316", stressed: "#F97316",
+  curiosity: "#C084FC", curious: "#C084FC",
 };
 
 const MOOD_LABELS = {
-  happiness: "Happiness",
-  happy: "Happiness",
-  sadness: "Sadness",
-  sad: "Sadness",
-  anger: "Anger",
-  angry: "Anger",
-  calmness: "Calmness",
-  calm: "Calmness",
-  stress: "Stress",
-  stressed: "Stress",
-  curiosity: "Curiosity",
-  curious: "Curiosity",
+  happiness: "Happiness", happy: "Happiness",
+  sadness: "Sadness", sad: "Sadness",
+  anger: "Anger", angry: "Anger",
+  calmness: "Calmness", calm: "Calmness",
+  stress: "Stress", stressed: "Stress",
+  curiosity: "Curiosity", curious: "Curiosity",
 };
 
 const RESPONSE_LABELS = {
@@ -40,9 +31,30 @@ const RESPONSE_LABELS = {
 };
 
 export const MoodResult = ({ analysis, onReset }) => {
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [journalNote, setJournalNote] = useState("");
+  const [showNoteInput, setShowNoteInput] = useState(false);
+
   const dominantColor = MOOD_COLORS[analysis.dominant_mood?.toLowerCase()] || "#C084FC";
   const dominantLabel = MOOD_LABELS[analysis.dominant_mood?.toLowerCase()] || analysis.dominant_mood;
   const responseLabel = RESPONSE_LABELS[analysis.response_type] || analysis.response_type;
+
+  const saveToJournal = async () => {
+    setSaving(true);
+    try {
+      await axios.post(`${API}/journal/save`, {
+        analysis_id: analysis.id,
+        note: journalNote,
+      });
+      setSaved(true);
+      setShowNoteInput(false);
+    } catch (err) {
+      console.error("Failed to save:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-3xl" data-testid="mood-result">
@@ -62,7 +74,6 @@ export const MoodResult = ({ analysis, onReset }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Dominant mood + Chart */}
         <div className="space-y-6">
-          {/* Dominant mood card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -86,7 +97,6 @@ export const MoodResult = ({ analysis, onReset }) => {
             />
           </motion.div>
 
-          {/* Emotion chart */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -100,52 +110,120 @@ export const MoodResult = ({ analysis, onReset }) => {
           </motion.div>
         </div>
 
-        {/* Right: AI Response */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-          className="glass-card p-8 flex flex-col"
-          style={{ boxShadow: `0 0 40px ${dominantColor}11` }}
-        >
-          <div className="flex items-center gap-2 mb-6">
-            <Sparkles size={16} strokeWidth={1.5} style={{ color: dominantColor }} />
-            <p className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
-              {responseLabel}
-            </p>
-          </div>
-
-          <div className="flex-1 flex items-center">
-            <div className="relative">
-              <Quote
-                size={32}
-                strokeWidth={1}
-                className="absolute -top-2 -left-2 opacity-20"
-                style={{ color: dominantColor }}
-              />
-              <p
-                data-testid="ai-response-text"
-                className="font-display text-xl md:text-2xl font-normal leading-relaxed pl-8"
-                style={{
-                  color: "var(--text-primary)",
-                  whiteSpace: "pre-line",
-                }}
-              >
-                {analysis.response_text}
+        {/* Right: AI Response + Save */}
+        <div className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="glass-card p-8 flex flex-col"
+            style={{ boxShadow: `0 0 40px ${dominantColor}11` }}
+          >
+            <div className="flex items-center gap-2 mb-6">
+              <Sparkles size={16} strokeWidth={1.5} style={{ color: dominantColor }} />
+              <p className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+                {responseLabel}
               </p>
             </div>
-          </div>
 
-          {/* Input type indicator */}
-          <div className="mt-8 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-            <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-              Analyzed from: {analysis.input_type} input
-              {analysis.input_preview && analysis.input_type !== "drawing" && (
-                <span className="ml-2 italic opacity-60">— "{analysis.input_preview}"</span>
-              )}
-            </p>
-          </div>
-        </motion.div>
+            <div className="flex-1 flex items-center">
+              <div className="relative">
+                <Quote
+                  size={32}
+                  strokeWidth={1}
+                  className="absolute -top-2 -left-2 opacity-20"
+                  style={{ color: dominantColor }}
+                />
+                <p
+                  data-testid="ai-response-text"
+                  className="font-display text-xl md:text-2xl font-normal leading-relaxed pl-8"
+                  style={{ color: "var(--text-primary)", whiteSpace: "pre-line" }}
+                >
+                  {analysis.response_text}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+              <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+                Analyzed from: {analysis.input_type} input
+                {analysis.input_preview && analysis.input_type !== "drawing" && (
+                  <span className="ml-2 italic opacity-60">— "{analysis.input_preview}"</span>
+                )}
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Save to Journal */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="glass-card p-5"
+          >
+            {saved ? (
+              <div className="flex items-center gap-3" data-testid="journal-saved">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(52,211,153,0.15)" }}>
+                  <Check size={16} strokeWidth={2} color="#34D399" />
+                </div>
+                <p className="text-sm font-medium" style={{ color: "#34D399" }}>
+                  Saved to your Mood Journal
+                </p>
+              </div>
+            ) : showNoteInput ? (
+              <div className="space-y-3">
+                <textarea
+                  data-testid="journal-note-input"
+                  value={journalNote}
+                  onChange={(e) => setJournalNote(e.target.value)}
+                  placeholder="Add a personal note (optional)..."
+                  rows={2}
+                  className="w-full bg-transparent resize-none outline-none text-sm font-light"
+                  style={{ color: "var(--text-primary)" }}
+                />
+                <div className="flex items-center gap-2 justify-end">
+                  <button
+                    data-testid="cancel-save-btn"
+                    onClick={() => setShowNoteInput(false)}
+                    className="px-4 py-2 rounded-full text-xs font-medium"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    Cancel
+                  </button>
+                  <motion.button
+                    data-testid="confirm-save-btn"
+                    onClick={saveToJournal}
+                    disabled={saving}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="px-5 py-2 rounded-full text-xs font-medium"
+                    style={{
+                      background: dominantColor,
+                      color: "#030303",
+                    }}
+                  >
+                    {saving ? "Saving..." : "Save Entry"}
+                  </motion.button>
+                </div>
+              </div>
+            ) : (
+              <motion.button
+                data-testid="save-to-journal-btn"
+                onClick={() => setShowNoteInput(true)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-full text-sm font-medium transition-all"
+                style={{
+                  border: `1px solid ${dominantColor}33`,
+                  color: dominantColor,
+                }}
+              >
+                <BookmarkPlus size={16} strokeWidth={1.5} />
+                Save to Mood Journal
+              </motion.button>
+            )}
+          </motion.div>
+        </div>
       </div>
     </div>
   );
