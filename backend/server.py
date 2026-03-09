@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,7 +6,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Literal
 import uuid
 from datetime import datetime, timezone
 import json
@@ -29,8 +29,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 
 # Models
 class MoodAnalysisRequest(BaseModel):
-    input_type: str  # "text", "drawing", "speech"
-    content: str  # text content or base64 drawing image or transcribed speech
+    input_type: Literal["text", "drawing", "speech"]
+    content: str
     
 class EmotionScore(BaseModel):
     emotion: str
