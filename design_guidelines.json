@@ -1,0 +1,186 @@
+{
+  "identity": {
+    "persona": "E1",
+    "mission": "Create a digital soul mirror that reflects human emotion through code and pixel. Avoid generic SaaS aesthetics. Embrace mystery, depth, and fluid motion.",
+    "theme_mode": "dark",
+    "tone": "Introspective, Empathetic, Futuristic-Zen"
+  },
+  "typography": {
+    "primary": {
+      "name": "Manrope",
+      "usage": "Body text, UI elements, Inputs",
+      "weights": ["300", "400", "500", "600"],
+      "import": "@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&display=swap');"
+    },
+    "secondary": {
+      "name": "Playfair Display",
+      "usage": "Headings, Emotional Words, 'The Mirror' title",
+      "weights": ["400", "600", "700"],
+      "import": "@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap');"
+    },
+    "tertiary": {
+      "name": "Space Mono",
+      "usage": "Data visualization, AI Analysis stats, timestamps",
+      "weights": ["400"],
+      "import": "@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');"
+    }
+  },
+  "colors": {
+    "background": {
+      "base": "#030303",
+      "surface": "#0A0A0A",
+      "overlay": "rgba(255, 255, 255, 0.03)"
+    },
+    "text": {
+      "primary": "#EDEDED",
+      "secondary": "#A1A1AA",
+      "muted": "#52525B"
+    },
+    "mood_palette": {
+      "happy": {
+        "color": "#FCD34D",
+        "glow": "0 0 40px rgba(252, 211, 77, 0.4)",
+        "gradient": "linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%)"
+      },
+      "sad": {
+        "color": "#60A5FA",
+        "glow": "0 0 40px rgba(96, 165, 250, 0.4)",
+        "gradient": "linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)"
+      },
+      "angry": {
+        "color": "#F87171",
+        "glow": "0 0 40px rgba(248, 113, 113, 0.4)",
+        "gradient": "linear-gradient(135deg, #F87171 0%, #EF4444 100%)"
+      },
+      "calm": {
+        "color": "#34D399",
+        "glow": "0 0 40px rgba(52, 211, 153, 0.4)",
+        "gradient": "linear-gradient(135deg, #34D399 0%, #10B981 100%)"
+      },
+      "neutral": {
+        "color": "#C084FC",
+        "glow": "0 0 40px rgba(192, 132, 252, 0.3)",
+        "gradient": "linear-gradient(135deg, #E879F9 0%, #C084FC 100%)"
+      }
+    },
+    "border": {
+      "subtle": "rgba(255, 255, 255, 0.08)",
+      "highlight": "rgba(255, 255, 255, 0.15)"
+    }
+  },
+  "layout": {
+    "grid_system": "Use a centralized layout for the main 'Mirror' experience. 12-column grid for history/dashboard sections.",
+    "spacing": {
+      "container_padding": "p-6 md:p-12 lg:p-24",
+      "element_gap": "gap-8"
+    },
+    "z_index": {
+      "background": "-10",
+      "ambient": "0",
+      "content": "10",
+      "modal": "50"
+    }
+  },
+  "components": {
+    "MoodOrb": {
+      "description": "The central visual element. A div with heavy blur and gradient that shifts based on current mood state.",
+      "styles": "rounded-full filter blur-3xl transition-all duration-1000 ease-in-out absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-60 mix-blend-screen"
+    },
+    "InputTabs": {
+      "description": "Floating glass tabs to switch between Text, Draw, Speak.",
+      "styles": "bg-black/40 backdrop-blur-md border border-white/10 rounded-full p-1"
+    },
+    "GlassCard": {
+      "description": "Container for analysis results and content.",
+      "styles": "bg-[#0A0A0A]/60 backdrop-blur-xl border border-white/5 shadow-2xl rounded-2xl p-8"
+    },
+    "ActionButtons": {
+      "description": "Minimalist, pill-shaped buttons with subtle glow on hover.",
+      "styles": "px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 active:scale-95 border border-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": {
+      "heavy": "backdrop-blur-2xl bg-black/40 border border-white/10",
+      "light": "backdrop-blur-md bg-white/5 border border-white/5"
+    },
+    "gradients": {
+      "void": "radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)",
+      "shimmer": "linear-gradient(45deg, transparent 25%, rgba(255,255,255,0.05) 50%, transparent 75%)"
+    },
+    "animation": {
+      "breathing": "animate-pulse duration-[4000ms]",
+      "floating": "animate-bounce duration-[3000ms]"
+    }
+  },
+  "motion": {
+    "library": "framer-motion",
+    "default_transition": {
+      "type": "spring",
+      "stiffness": 100,
+      "damping": 20,
+      "mass": 1
+    },
+    "page_transition": {
+      "initial": { "opacity": 0, "filter": "blur(10px)" },
+      "animate": { "opacity": 1, "filter": "blur(0px)" },
+      "exit": { "opacity": 0, "filter": "blur(10px)" },
+      "transition": { "duration": 0.5 }
+    }
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.unsplash.com/photo-1769120062929-a2aff1599173",
+        "description": "Fluid Grayscale Patterns",
+        "category": "texture_calm"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1637750586228-179a1a7aef84",
+        "description": "Shiny Black Surface",
+        "category": "texture_deep"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1641418092524-1709c335f860",
+        "description": "Wavy Lines Dark",
+        "category": "texture_wave"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1770745560263-a8fc696de90b",
+        "description": "Flowing Fabric",
+        "category": "texture_soft"
+      }
+    ],
+    "icons": "lucide-react (Use thin strokes: strokeWidth={1.5})"
+  },
+  "libraries": {
+    "charts": "react-chartjs-2 (Use 'Radar' or 'PolarArea' charts for emotion mapping, customized to be dark and glowing)",
+    "drawing": "react-canvas-draw (Customize canvas background to be transparent or dark)",
+    "speech": "react-speech-recognition (For voice input handling)",
+    "ui": "shadcn/ui (Heavily customized: remove radii, add glass effects)"
+  },
+  "accessibility": {
+    "contrast_check": "Ensure text opacity is high enough on dark backgrounds (min 0.8 opacity for body).",
+    "motion_reduction": "Respect prefers-reduced-motion using framer-motion's useReducedMotion hook.",
+    "screen_readers": "All mood visualizers must have aria-labels describing the current mood state."
+  },
+  "instructions_to_main_agent": [
+    "PHASE 1: Set up the 'Atmosphere'. Create a Layout wrapper that holds the dark background, fonts, and global animations.",
+    "PHASE 2: Build the 'Express Yourself' input components. The drawing canvas should feel like drawing with light on a dark screen. The voice input should visualize sound waves.",
+    "PHASE 3: Implement the Mood Logic. Mock the AI response first to perfect the transitions. When the user submits, the 'Mirror' should swirl/blur before revealing the result.",
+    "PHASE 4: Create the 'Result Card'. It should display the generated poem/text with elegant typography and a mood chart.",
+    "CRITICAL: Do not use standard white cards. Everything is dark, glass, and glowing.",
+    "Use 'sonner' for notifications (e.g., 'Listening...', 'Analyzing...').",
+    "For the Chart, use a Polar Area chart where each segment is a mood color. It looks more 'artistic' than a bar chart."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Don't make generic centered layouts. Use asymmetry where possible, but keep the core interaction focused.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "Every interaction needs micro-animations.",
+    "Subtle grain textures and noise overlays are recommended for the background.",
+    "Use 'sonner' for toasts.",
+    "Components MUST use named exports.",
+    "Pages MUST use default exports."
+  ]
+}
