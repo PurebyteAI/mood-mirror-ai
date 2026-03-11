@@ -1,28 +1,69 @@
-from fastapi import FastAPI, APIRouter, HTTPException
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Literal
-import uuid
 from datetime import datetime, timezone
-import json
-import base64
-from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContent
+from contextlib import asynccontextmanager
+import logging
+import os
+from pathlib import Path
+from typing import List, Literal, Optional
+import uuid
+
+from dotenv import load_dotenv
+from fastapi import APIRouter, FastAPI, HTTPException
+from pydantic import BaseModel, ConfigDict, Field
+from starlette.middleware.cors import CORSMiddleware
+import uvicorn
+
+from services.openrouter_service import OpenRouterError, OpenRouterService
+from services.sqlite_store import SQLiteStore
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
 
-EMERGENT_LLM_KEY = os.environ['EMERGENT_LLM_KEY']
+def get_cors_origins() -> List[str]:
+    raw_origins = os.environ.get('CORS_ORIGINS', '').strip()
+    if not raw_origins or raw_origins == '*':
+        return [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+        ]
 
-app = FastAPI()
+    return [origin.strip() for origin in raw_origins.split(',') if origin.strip()]
+
+
+def get_bool_env(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+CORS_ORIGINS = get_cors_origins()
+
+store = SQLiteStore()
+openrouter_service: Optional[OpenRouterService] = None
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    global openrouter_service
+
+    await store.init()
+    try:
+        openrouter_service = OpenRouterService()
+    except OpenRouterError as e:
+        openrouter_service = None
+        logger.error(f"OpenRouter initialization failed: {e}")
+
+    try:
+        yield
+    finally:
+        if openrouter_service is not None:
+            await openrouter_service.close()
+            openrouter_service = None
+
+app = FastAPI(lifespan=lifespan)
 api_router = APIRouter(prefix="/api")
 
 logger = logging.getLogger(__name__)
@@ -126,23 +167,6 @@ def build_drawing_prompt(lang_instruction):
     )
 
 
-def clean_json_response(text):
-    cleaned = text.strip()
-    if cleaned.startswith("```"):
-        cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
-    if cleaned.endswith("```"):
-        cleaned = cleaned[:-3]
-    cleaned = cleaned.strip()
-    if cleaned.startswith("json"):
-        cleaned = cleaned[4:].strip()
-    # Try to find JSON object boundaries
-    start = cleaned.find("{")
-    end = cleaned.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        cleaned = cleaned[start:end + 1]
-    return cleaned
-
-
 def make_fallback():
     return {
         "emotions": [
@@ -168,44 +192,26 @@ async def root():
 async def analyze_mood(request: MoodAnalysisRequest):
     try:
         lang_instruction = LANG_INSTRUCTIONS.get(request.language, LANG_INSTRUCTIONS["en"])
-        
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=str(uuid.uuid4()),
-            system_message="You are an AI emotion analyst. Always respond with valid JSON only."
-        ).with_model("gemini", "gemini-3-flash-preview")
 
-        if request.input_type == "drawing" and request.content.startswith("data:image"):
-            header, b64data = request.content.split(",", 1)
-            content_type = header.split(";")[0].split(":")[1]
-            
-            file_content = FileContent(
-                content_type=content_type,
-                file_content_base64=b64data
-            )
-            drawing_prompt = build_drawing_prompt(lang_instruction)
-            user_message = UserMessage(
-                text=drawing_prompt,
-                file_contents=[file_content]
-            )
+        image_data_url = None
+        if request.input_type == "drawing":
+            prompt = build_drawing_prompt(lang_instruction)
+            if request.content.startswith("data:image"):
+                image_data_url = request.content
         else:
             prompt = build_text_prompt(
                 input_type=request.input_type,
                 content=request.content,
-                lang_instruction=lang_instruction
+                lang_instruction=lang_instruction,
             )
-            user_message = UserMessage(text=prompt)
 
-        response_text = await chat.send_message(user_message)
-        logger.info(f"Raw Gemini response (first 500 chars): {response_text[:500]}")
-        cleaned = clean_json_response(response_text)
-        logger.info(f"Cleaned JSON (first 300 chars): {cleaned[:300]}")
-        
-        try:
-            result = json.loads(cleaned)
-        except json.JSONDecodeError:
-            logger.error(f"JSON parse error, raw: {response_text[:500]}")
-            result = make_fallback()
+        if openrouter_service is None:
+            raise OpenRouterError("OpenRouter service is not available")
+        result = await openrouter_service.generate_analysis(
+            prompt=prompt,
+            image_data_url=image_data_url,
+            language=request.language,
+        )
 
         input_preview = request.content[:100] + "..." if len(request.content) > 100 else request.content
         if request.input_type == "drawing":
@@ -222,7 +228,7 @@ async def analyze_mood(request: MoodAnalysisRequest):
         )
 
         doc = analysis.model_dump()
-        await db.mood_analyses.insert_one(doc)
+        await store.save_analysis(doc)
         return analysis
 
     except Exception as e:
@@ -241,21 +247,18 @@ async def analyze_mood(request: MoodAnalysisRequest):
             timestamp=datetime.now(timezone.utc).isoformat()
         )
         doc = fallback.model_dump()
-        await db.mood_analyses.insert_one(doc)
+        await store.save_analysis(doc)
         return fallback
 
 
 @api_router.get("/history")
 async def get_history():
-    analyses = await db.mood_analyses.find(
-        {}, {"_id": 0}
-    ).sort("timestamp", -1).to_list(20)
-    return analyses
+    return await store.get_history(limit=20)
 
 
 @api_router.delete("/history")
 async def clear_history():
-    await db.mood_analyses.delete_many({})
+    await store.clear_history()
     return {"message": "History cleared"}
 
 
@@ -263,81 +266,29 @@ async def clear_history():
 
 @api_router.post("/journal/save")
 async def save_to_journal(request: SaveToJournalRequest):
-    analysis = await db.mood_analyses.find_one(
-        {"id": request.analysis_id}, {"_id": 0}
-    )
+    analysis = await store.get_analysis(request.analysis_id)
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
-    journal_entry = {
-        **analysis,
-        "journal_note": request.note,
-        "saved_at": datetime.now(timezone.utc).isoformat(),
-    }
-    # Check if already saved
-    existing = await db.mood_journal.find_one({"id": request.analysis_id})
-    if existing:
-        await db.mood_journal.update_one(
-            {"id": request.analysis_id},
-            {"$set": {"journal_note": request.note}}
-        )
-    else:
-        await db.mood_journal.insert_one(journal_entry)
-
-    # Mark as saved in analyses
-    await db.mood_analyses.update_one(
-        {"id": request.analysis_id},
-        {"$set": {"saved_to_journal": True}}
-    )
-
+    await store.save_to_journal(analysis, request.note)
     return {"message": "Saved to journal", "id": request.analysis_id}
 
 
 @api_router.get("/journal")
 async def get_journal(days: int = 30):
-    from datetime import timedelta
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-    entries = await db.mood_journal.find(
-        {"timestamp": {"$gte": cutoff}}, {"_id": 0}
-    ).sort("timestamp", -1).to_list(100)
-    return entries
+    return await store.get_journal(days=days, limit=100)
 
 
 @api_router.get("/journal/trends")
 async def get_mood_trends(days: int = 30):
-    from datetime import timedelta
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-    entries = await db.mood_journal.find(
-        {"timestamp": {"$gte": cutoff}}, {"_id": 0}
-    ).sort("timestamp", 1).to_list(200)
-
-    trends = []
-    for entry in entries:
-        emotion_map = {}
-        for em in entry.get("emotions", []):
-            emotion_map[em["emotion"]] = em["score"]
-        trends.append({
-            "timestamp": entry["timestamp"],
-            "dominant_mood": entry.get("dominant_mood", ""),
-            "happiness": emotion_map.get("happiness", 0),
-            "sadness": emotion_map.get("sadness", 0),
-            "stress": emotion_map.get("stress", 0),
-            "calmness": emotion_map.get("calmness", 0),
-            "anger": emotion_map.get("anger", 0),
-            "curiosity": emotion_map.get("curiosity", 0),
-        })
-    return trends
+    return await store.get_journal_trends(days=days, limit=200)
 
 
 @api_router.delete("/journal/{entry_id}")
 async def delete_journal_entry(entry_id: str):
-    result = await db.mood_journal.delete_one({"id": entry_id})
-    if result.deleted_count == 0:
+    deleted = await store.delete_journal_entry(entry_id)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Entry not found")
-    await db.mood_analyses.update_one(
-        {"id": entry_id},
-        {"$set": {"saved_to_journal": False}}
-    )
     return {"message": "Removed from journal"}
 
 
@@ -346,11 +297,16 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "server:app",
+        host=os.environ.get("BACKEND_HOST", "127.0.0.1"),
+        port=int(os.environ.get("BACKEND_PORT", "8001")),
+        reload=get_bool_env("BACKEND_RELOAD", default=False),
+    )

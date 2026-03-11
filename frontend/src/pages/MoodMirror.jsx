@@ -8,9 +8,8 @@ import { Header } from "@/components/mood/Header";
 import { AmbientControl } from "@/components/mood/AmbientControl";
 import JournalPage from "@/pages/JournalPage";
 import { useTranslation } from "@/i18n";
+import { API_BASE } from "@/lib/api";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const MoodMirror = () => {
   const [analysis, setAnalysis] = useState(null);
@@ -26,7 +25,7 @@ const MoodMirror = () => {
     setIsAnalyzing(true);
     setAnalysis(null);
     try {
-      const res = await axios.post(`${API}/analyze`, {
+      const res = await axios.post(`${API_BASE}/analyze`, {
         input_type: inputType,
         content: content,
         language: language,
@@ -42,7 +41,7 @@ const MoodMirror = () => {
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/history`);
+      const res = await axios.get(`${API_BASE}/history`);
       setHistory(res.data);
     } catch (err) {
       console.error("History fetch failed:", err);

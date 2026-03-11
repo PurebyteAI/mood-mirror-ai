@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Quote, Sparkles, BookmarkPlus, Check } from "lucide-react";
 import { MoodChart } from "@/components/mood/MoodChart";
+import { API_BASE } from "@/lib/api";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const MOOD_COLORS = {
   happiness: "#FCD34D", happy: "#FCD34D",
@@ -37,7 +36,7 @@ export const MoodResult = ({ analysis, onReset, t }) => {
   const saveToJournal = async () => {
     setSaving(true);
     try {
-      await axios.post(`${API}/journal/save`, { analysis_id: analysis.id, note: journalNote });
+      await axios.post(`${API_BASE}/journal/save`, { analysis_id: analysis.id, note: journalNote });
       setSaved(true);
       setShowNoteInput(false);
     } catch (err) { console.error("Failed to save:", err); }

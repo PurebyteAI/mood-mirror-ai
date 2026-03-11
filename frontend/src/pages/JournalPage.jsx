@@ -3,9 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Trash2, BookOpen, TrendingUp, Calendar, StickyNote } from "lucide-react";
 import { MoodChart } from "@/components/mood/MoodChart";
 import { MoodTrendChart } from "@/components/mood/MoodTrendChart";
+import { API_BASE } from "@/lib/api";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const MOOD_COLORS = {
   happiness: "#FCD34D", happy: "#FCD34D",
@@ -28,8 +27,8 @@ const JournalPage = ({ onBack, t }) => {
     setLoading(true);
     try {
       const [entriesRes, trendsRes] = await Promise.all([
-        axios.get(`${API}/journal?days=${days}`),
-        axios.get(`${API}/journal/trends?days=${days}`),
+        axios.get(`${API_BASE}/journal?days=${days}`),
+        axios.get(`${API_BASE}/journal/trends?days=${days}`),
       ]);
       setEntries(entriesRes.data);
       setTrends(trendsRes.data);
@@ -41,7 +40,7 @@ const JournalPage = ({ onBack, t }) => {
 
   const deleteEntry = async (entryId) => {
     try {
-      await axios.delete(`${API}/journal/${entryId}`);
+      await axios.delete(`${API_BASE}/journal/${entryId}`);
       setEntries((prev) => prev.filter((e) => e.id !== entryId));
     } catch (err) { console.error("Delete error:", err); }
   };
