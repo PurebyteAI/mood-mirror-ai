@@ -18,7 +18,7 @@ class OpenRouterService:
             raise OpenRouterError("OPENROUTER_API_KEY is not configured")
 
         self.base_url = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
-        self.model = os.environ.get("OPENROUTER_MODEL", "qwen/qwen3-vl-235b-a22b-thinking")
+        self.model = os.environ.get("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
         self.timeout_seconds = float(os.environ.get("OPENROUTER_TIMEOUT_SECONDS", "45"))
         self.max_retries = int(os.environ.get("OPENROUTER_MAX_RETRIES", "3"))
         self.min_interval_seconds = float(os.environ.get("OPENROUTER_MIN_INTERVAL_SECONDS", "1.0"))

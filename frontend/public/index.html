@@ -22,6 +22,16 @@
         Learn how to configure a non-root public URL by running `npm run build`.
         -->
         <title>Mood Mirror AI</title>
+        <script>
+            (function () {
+                try {
+                    var theme = localStorage.getItem("mood-mirror-theme") || "dark";
+                    var root = document.documentElement;
+                    root.classList.remove("dark", "light");
+                    root.classList.add(theme === "light" ? "light" : "dark");
+                } catch (e) {}
+            })();
+        </script>
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
     </head>
     <body>

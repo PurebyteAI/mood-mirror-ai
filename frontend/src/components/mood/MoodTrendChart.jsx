@@ -17,25 +17,30 @@ const MOOD_CONFIG = {
   curiosity: { color: "#C084FC", label: "Curious" },
 };
 
+const getThemeValue = (name, fallback) => {
+  if (typeof window === "undefined") return fallback;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+};
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload) return null;
   return (
     <div
       style={{
-        background: "rgba(10,10,10,0.95)",
-        border: "1px solid rgba(255,255,255,0.1)",
+        background: getThemeValue("--bg-elevated", "rgba(10,10,10,0.95)"),
+        border: `1px solid ${getThemeValue("--control-border", "rgba(255,255,255,0.1)")}`,
         borderRadius: "8px",
         padding: "10px 14px",
         backdropFilter: "blur(12px)",
       }}
     >
-      <p style={{ color: "#A1A1AA", fontSize: "10px", fontFamily: "'Space Mono', monospace", marginBottom: "6px" }}>
+      <p style={{ color: getThemeValue("--text-muted", "#A1A1AA"), fontSize: "10px", fontFamily: "'Space Mono', monospace", marginBottom: "6px" }}>
         {label}
       </p>
       {payload.map((p) => (
         <div key={p.dataKey} style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
           <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: p.color }} />
-          <span style={{ color: "#EDEDED", fontSize: "11px", fontFamily: "'Space Mono', monospace" }}>
+          <span style={{ color: getThemeValue("--text-primary", "#EDEDED"), fontSize: "11px", fontFamily: "'Space Mono', monospace" }}>
             {MOOD_CONFIG[p.dataKey]?.label}: {Math.round(p.value * 100)}%
           </span>
         </div>
@@ -46,6 +51,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export const MoodTrendChart = ({ data }) => {
   if (!data || data.length === 0) return null;
+
+  const tickColor = getThemeValue("--text-muted", "#52525B");
+  const axisLine = getThemeValue("--divider-subtle", "rgba(255,255,255,0.05)");
 
   const formatted = data.map((d) => ({
     ...d,
@@ -69,12 +77,12 @@ export const MoodTrendChart = ({ data }) => {
           </defs>
           <XAxis
             dataKey="time"
-            tick={{ fill: "#52525B", fontSize: 10, fontFamily: "'Space Mono', monospace" }}
-            axisLine={{ stroke: "rgba(255,255,255,0.05)" }}
+            tick={{ fill: tickColor, fontSize: 10, fontFamily: "'Space Mono', monospace" }}
+            axisLine={{ stroke: axisLine }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: "#52525B", fontSize: 10, fontFamily: "'Space Mono', monospace" }}
+            tick={{ fill: tickColor, fontSize: 10, fontFamily: "'Space Mono', monospace" }}
             axisLine={false}
             tickLine={false}
             domain={[0, 1]}

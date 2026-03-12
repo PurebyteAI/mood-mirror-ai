@@ -49,9 +49,9 @@ export const AmbientControl = ({ mood, label }) => {
             exit={{ opacity: 0, x: 10, width: 0 }}
             className="flex items-center gap-2 px-3 py-2 rounded-full overflow-hidden"
             style={{
-              background: "rgba(10,10,10,0.8)",
+              background: "var(--bg-elevated)",
               backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              border: "1px solid var(--control-border)",
             }}
           >
             <span className="text-xs font-mono whitespace-nowrap" style={{ color: "var(--text-muted)" }}>
@@ -64,7 +64,8 @@ export const AmbientControl = ({ mood, label }) => {
               max="40"
               value={volume}
               onChange={handleVolume}
-              className="w-20 accent-white/50"
+              className="w-20"
+              style={{ accentColor: "var(--text-secondary)" }}
             />
           </motion.div>
         )}
@@ -81,10 +82,10 @@ export const AmbientControl = ({ mood, label }) => {
         style={{
           background: isPlaying
             ? "rgba(192,132,252,0.15)"
-            : "rgba(255,255,255,0.05)",
+            : "var(--control-bg)",
           border: isPlaying
             ? "1px solid rgba(192,132,252,0.3)"
-            : "1px solid rgba(255,255,255,0.1)",
+            : "1px solid var(--control-border)",
           boxShadow: isPlaying ? "0 0 20px rgba(192,132,252,0.2)" : "none",
           color: isPlaying ? "#C084FC" : "var(--text-muted)",
         }}

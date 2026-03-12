@@ -5,8 +5,9 @@ import { MoodChart } from "@/components/mood/MoodChart";
 import { MoodTrendChart } from "@/components/mood/MoodTrendChart";
 import { API_BASE } from "@/lib/api";
 import axios from "axios";
+import { useTheme } from "next-themes";
 
-const MOOD_COLORS = {
+const MOOD_COLORS_DARK = {
   happiness: "#FCD34D", happy: "#FCD34D",
   sadness: "#60A5FA", sad: "#60A5FA",
   anger: "#F87171", angry: "#F87171",
@@ -15,7 +16,18 @@ const MOOD_COLORS = {
   curiosity: "#C084FC", curious: "#C084FC",
 };
 
+const MOOD_COLORS_LIGHT = {
+  happiness: "#d4a840", happy: "#d4a840",
+  sadness: "#6898d0", sad: "#6898d0",
+  anger: "#c86858", angry: "#c86858",
+  calmness: "#5aaa78", calm: "#5aaa78",
+  stress: "#c87840", stressed: "#c87840",
+  curiosity: "#9870c0", curious: "#9870c0",
+};
+
 const JournalPage = ({ onBack, t }) => {
+  const { resolvedTheme } = useTheme();
+  const MOOD_COLORS = resolvedTheme === "light" ? MOOD_COLORS_LIGHT : MOOD_COLORS_DARK;
   const [entries, setEntries] = useState([]);
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,21 +73,21 @@ const JournalPage = ({ onBack, t }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "var(--chip-bg)", border: "1px solid var(--control-border)" }}>
             {[7, 30, 90].map((d) => (
               <button key={d} data-testid={`filter-${d}d`} onClick={() => setDays(d)} className="px-3 py-1.5 rounded-full text-xs font-mono transition-all"
-                style={{ background: days === d ? "rgba(255,255,255,0.1)" : "transparent", color: days === d ? "var(--text-primary)" : "var(--text-muted)" }}>
+                style={{ background: days === d ? "var(--chip-active-bg)" : "transparent", color: days === d ? "var(--text-primary)" : "var(--text-muted)" }}>
                 {d}d
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "var(--chip-bg)", border: "1px solid var(--control-border)" }}>
             <button data-testid="view-entries-btn" onClick={() => setActiveView("entries")} className="p-2 rounded-full transition-all"
-              style={{ background: activeView === "entries" ? "rgba(255,255,255,0.1)" : "transparent", color: activeView === "entries" ? "var(--text-primary)" : "var(--text-muted)" }}>
+              style={{ background: activeView === "entries" ? "var(--chip-active-bg)" : "transparent", color: activeView === "entries" ? "var(--text-primary)" : "var(--text-muted)" }}>
               <BookOpen size={16} strokeWidth={1.5} />
             </button>
             <button data-testid="view-trends-btn" onClick={() => setActiveView("trends")} className="p-2 rounded-full transition-all"
-              style={{ background: activeView === "trends" ? "rgba(255,255,255,0.1)" : "transparent", color: activeView === "trends" ? "var(--text-primary)" : "var(--text-muted)" }}>
+              style={{ background: activeView === "trends" ? "var(--chip-active-bg)" : "transparent", color: activeView === "trends" ? "var(--text-primary)" : "var(--text-muted)" }}>
               <TrendingUp size={16} strokeWidth={1.5} />
             </button>
           </div>
@@ -84,7 +96,7 @@ const JournalPage = ({ onBack, t }) => {
 
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="w-8 h-8 border-2 border-white/10 border-t-white/50 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: "var(--border-subtle)", borderTopColor: "var(--text-secondary)" }} />
         </div>
       ) : (
         <AnimatePresence mode="wait">
@@ -140,13 +152,13 @@ const JournalPage = ({ onBack, t }) => {
                               </div>
                             </div>
                             <button data-testid={`delete-entry-${i}`} onClick={(e) => { e.stopPropagation(); deleteEntry(entry.id); }}
-                              className="p-2 rounded-full hover:bg-white/5 transition-all" style={{ color: "var(--text-muted)" }}>
+                              className="p-2 rounded-full transition-all" style={{ color: "var(--text-muted)", background: "transparent" }}>
                               <Trash2 size={14} strokeWidth={1.5} />
                             </button>
                           </div>
                           <p className={`text-sm font-display leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`} style={{ color: "var(--text-secondary)" }}>{entry.response_text}</p>
                           {entry.journal_note && (
-                            <div className="flex items-start gap-2 mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.03)" }}>
+                            <div className="flex items-start gap-2 mt-3 pt-3" style={{ borderTop: "1px solid var(--divider-subtle)" }}>
                               <StickyNote size={12} strokeWidth={1.5} className="mt-0.5" style={{ color: "var(--text-muted)" }} />
                               <p className="text-xs italic" style={{ color: "var(--text-muted)" }}>{entry.journal_note}</p>
                             </div>
@@ -155,7 +167,7 @@ const JournalPage = ({ onBack, t }) => {
                         <AnimatePresence>
                           {isExpanded && (
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
-                              <div className="px-5 pb-5 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                              <div className="px-5 pb-5 pt-2" style={{ borderTop: "1px solid var(--divider-subtle)" }}>
                                 <p className="text-xs font-mono uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>{t("emotionBreakdown")}</p>
                                 <MoodChart emotions={entry.emotions} t={t} />
                               </div>

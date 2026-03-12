@@ -61,15 +61,15 @@ const MoodMirror = () => {
   return (
     <div
       data-testid="mood-mirror-app"
-      className="relative min-h-screen overflow-hidden"
-      style={{ background: "#030303" }}
+      className="relative min-h-screen overflow-hidden theme-transition"
+      style={{ background: "var(--bg-base)" }}
     >
       <MoodOrb mood={dominantMood} />
 
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(circle at 50% 30%, rgba(26,26,26,0.5) 0%, #030303 70%)",
+          background: "var(--page-gradient)",
           zIndex: 1,
         }}
       />
@@ -115,7 +115,7 @@ const MoodMirror = () => {
               transition={{ duration: 0.5 }}
               className="flex-1 flex items-start justify-center pt-8"
             >
-              <MoodResult analysis={analysis} onReset={resetMirror} t={t} />
+              <MoodResult analysis={analysis} onReset={resetMirror} t={t} language={language} />
             </motion.div>
           ) : (
             <motion.div

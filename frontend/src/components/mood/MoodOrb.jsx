@@ -38,7 +38,8 @@ export const MoodOrb = ({ mood }) => {
           borderRadius: "50%",
           background: `radial-gradient(circle, ${color}33 0%, ${color}11 40%, transparent 70%)`,
           filter: "blur(80px)",
-          mixBlendMode: "screen",
+          mixBlendMode: "var(--orb-blend-mode)",
+          opacity: "var(--orb-primary-opacity)",
         }}
         animate={{
           background: `radial-gradient(circle, ${color}33 0%, ${color}11 40%, transparent 70%)`,
@@ -56,11 +57,11 @@ export const MoodOrb = ({ mood }) => {
           borderRadius: "50%",
           background: `radial-gradient(circle, ${color}22 0%, transparent 60%)`,
           filter: "blur(60px)",
-          mixBlendMode: "screen",
+          mixBlendMode: "var(--orb-blend-mode)",
+          opacity: "var(--orb-secondary-opacity)",
         }}
         animate={{
           scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3],
         }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
       />

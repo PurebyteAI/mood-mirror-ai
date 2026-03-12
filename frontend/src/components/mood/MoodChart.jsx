@@ -1,7 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { useTheme } from "next-themes";
 
-const MOOD_COLORS = {
+const MOOD_COLORS_DARK = {
   happiness: "#FCD34D",
   sadness: "#60A5FA",
   anger: "#F87171",
@@ -10,7 +11,18 @@ const MOOD_COLORS = {
   curiosity: "#C084FC",
 };
 
+const MOOD_COLORS_LIGHT = {
+  happiness: "#d4a840",
+  sadness: "#6898d0",
+  anger: "#c86858",
+  calmness: "#5aaa78",
+  stress: "#c87840",
+  curiosity: "#9870c0",
+};
+
 export const MoodChart = ({ emotions, t }) => {
+  const { resolvedTheme } = useTheme();
+  const MOOD_COLORS = resolvedTheme === "light" ? MOOD_COLORS_LIGHT : MOOD_COLORS_DARK;
   if (!emotions || emotions.length === 0) return null;
 
   const sorted = [...emotions].sort((a, b) => b.score - a.score);
@@ -36,7 +48,7 @@ export const MoodChart = ({ emotions, t }) => {
             <span className="text-xs font-mono w-16 text-right" style={{ color: "var(--text-muted)" }}>
               {label}
             </span>
-            <div className="flex-1 h-6 rounded-full overflow-hidden relative" style={{ background: "rgba(255,255,255,0.03)" }}>
+            <div className="flex-1 h-6 rounded-full overflow-hidden relative" style={{ background: "var(--bg-surface-soft)" }}>
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${barWidth}%` }}

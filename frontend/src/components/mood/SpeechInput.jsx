@@ -20,7 +20,7 @@ const WaveformCanvas = ({ analyserRef, isRecording }) => {
     const draw = () => {
       animFrameRef.current = requestAnimationFrame(draw);
       analyser.getByteTimeDomainData(dataArray);
-      ctx.fillStyle = "rgba(10, 10, 10, 0.3)";
+      ctx.fillStyle = "var(--bg-surface-soft)";
       ctx.fillRect(0, 0, rect.width, rect.height);
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#F87171";
@@ -67,9 +67,9 @@ const WaveformCanvas = ({ analyserRef, isRecording }) => {
       canvas.width = rect.width * 2;
       canvas.height = rect.height * 2;
       ctx.scale(2, 2);
-      ctx.fillStyle = "#0A0A0A";
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--wave-bg").trim() || "#0A0A0A";
       ctx.fillRect(0, 0, rect.width, rect.height);
-      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--divider-subtle").trim() || "rgba(255,255,255,0.08)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, rect.height / 2);
@@ -78,7 +78,7 @@ const WaveformCanvas = ({ analyserRef, isRecording }) => {
     }
   }, [isRecording]);
 
-  return <canvas ref={canvasRef} data-testid="waveform-canvas" className="w-full rounded-lg" style={{ height: "80px", background: "#0A0A0A" }} />;
+  return <canvas ref={canvasRef} data-testid="waveform-canvas" className="w-full rounded-lg" style={{ height: "80px", background: "var(--wave-bg)" }} />;
 };
 
 export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
@@ -159,7 +159,7 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
 
   return (
     <div className="glass-card p-6 md:p-8" data-testid="speech-input-section">
-      <div className="mb-6 rounded-lg overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="mb-6 rounded-lg overflow-hidden" style={{ border: "1px solid var(--divider-subtle)" }}>
         <WaveformCanvas analyserRef={analyserRef} isRecording={isRecording} />
       </div>
 
@@ -175,13 +175,13 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
             data-testid="record-btn" onClick={toggleRecording} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             className="relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300"
             style={{
-              background: isRecording ? "linear-gradient(135deg, #F87171 0%, #EF4444 100%)" : "rgba(255,255,255,0.06)",
-              border: isRecording ? "2px solid rgba(248,113,113,0.5)" : "2px solid rgba(255,255,255,0.1)",
+              background: isRecording ? "linear-gradient(135deg, #F87171 0%, #EF4444 100%)" : "var(--control-bg)",
+              border: isRecording ? "2px solid rgba(248,113,113,0.5)" : "2px solid var(--control-border)",
               boxShadow: isRecording ? "0 0 40px rgba(248,113,113,0.4)" : "none",
             }}
             disabled={isAnalyzing}
           >
-            {isRecording ? <MicOff size={28} strokeWidth={1.5} color="#030303" /> : <Mic size={28} strokeWidth={1.5} style={{ color: "var(--text-secondary)" }} />}
+            {isRecording ? <MicOff size={28} strokeWidth={1.5} color="var(--gradient-button-text)" /> : <Mic size={28} strokeWidth={1.5} style={{ color: "var(--text-secondary)" }} />}
           </motion.button>
         </div>
         <p className="mt-4 text-sm font-mono" style={{ color: isRecording ? "#F87171" : "var(--text-muted)" }} data-testid="recording-status">
@@ -190,12 +190,12 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
       </div>
 
       {transcript && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-4 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-4 rounded-xl" style={{ background: "var(--bg-surface-soft)", border: "1px solid var(--divider-subtle)" }}>
           <p data-testid="speech-transcript" className="text-lg font-light leading-relaxed italic" style={{ color: "var(--text-primary)" }}>"{transcript}"</p>
         </motion.div>
       )}
 
-      <div className="flex items-center justify-between pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="flex items-center justify-between pt-4" style={{ borderTop: "1px solid var(--divider-subtle)" }}>
         <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
           {transcript ? `${transcript.split(" ").length} ${t("wordsCaptured")}` : t("expressVoice")}
         </p>
@@ -203,7 +203,7 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
           data-testid="analyze-speech-btn" onClick={handleSubmit} disabled={!transcript.trim() || isAnalyzing}
           whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
           className="flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{ background: "linear-gradient(135deg, #C084FC 0%, #60A5FA 100%)", color: "#030303" }}
+          style={{ background: "var(--gradient-primary)", color: "var(--gradient-button-text)" }}
         >
           {isAnalyzing ? (<><Loader2 size={16} strokeWidth={1.5} className="animate-spin" />{t("analyzing")}</>) : (<><Send size={16} strokeWidth={1.5} />{t("mirrorMe")}</>)}
         </motion.button>

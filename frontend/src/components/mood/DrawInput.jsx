@@ -9,7 +9,9 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t }) => {
   const [brushColor, setBrushColor] = useState("#EDEDED");
   const [brushSize, setBrushSize] = useState(3);
 
-  const COLORS = ["#EDEDED", "#FCD34D", "#60A5FA", "#F87171", "#34D399", "#C084FC", "#F97316"];
+  const COLORS = ["#EDE0C8", "#FCD34D", "#60A5FA", "#F87171", "#34D399", "#C084FC", "#F97316"];
+  const getCanvasBackground = () => getComputedStyle(document.documentElement).getPropertyValue("--bg-surface").trim() || "#0A0A0A";
+  const getDefaultBrush = () => getComputedStyle(document.documentElement).getPropertyValue("--text-primary").trim() || "#EDEDED";
 
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -19,13 +21,16 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t }) => {
     canvas.width = rect.width * 2;
     canvas.height = rect.height * 2;
     ctx.scale(2, 2);
-    ctx.fillStyle = "#0A0A0A";
+    ctx.fillStyle = getCanvasBackground();
     ctx.fillRect(0, 0, rect.width, rect.height);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
   }, []);
 
-  useEffect(() => { initCanvas(); }, [initCanvas]);
+  useEffect(() => {
+    setBrushColor(getDefaultBrush());
+    initCanvas();
+  }, [initCanvas]);
 
   const getPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -60,7 +65,7 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t }) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     const rect = canvas.getBoundingClientRect();
-    ctx.fillStyle = "#0A0A0A";
+    ctx.fillStyle = getCanvasBackground();
     ctx.fillRect(0, 0, rect.width, rect.height);
     setHasDrawn(false);
   };
@@ -83,21 +88,21 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t }) => {
               className="w-7 h-7 rounded-full transition-all duration-200 hover:scale-110"
               style={{
                 background: color,
-                border: brushColor === color ? "2px solid white" : "2px solid transparent",
+                border: brushColor === color ? "2px solid var(--text-primary)" : "2px solid transparent",
                 boxShadow: brushColor === color ? `0 0 12px ${color}66` : "none",
               }}
             />
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <input data-testid="brush-size-slider" type="range" min="1" max="12" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-20 accent-white opacity-50" />
-          <button data-testid="clear-canvas-btn" onClick={clearCanvas} className="p-2 rounded-full transition-all hover:bg-white/10" style={{ color: "var(--text-muted)" }}>
+          <input data-testid="brush-size-slider" type="range" min="1" max="12" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-20 opacity-60" style={{ accentColor: "var(--text-secondary)" }} />
+          <button data-testid="clear-canvas-btn" onClick={clearCanvas} className="p-2 rounded-full transition-all hover:opacity-90" style={{ color: "var(--text-muted)", background: "var(--bg-surface-soft)" }}>
             <RotateCcw size={16} strokeWidth={1.5} />
           </button>
         </div>
       </div>
 
-      <div className="relative rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="relative rounded-xl overflow-hidden" style={{ border: "1px solid var(--divider-subtle)" }}>
         <canvas
           ref={canvasRef} data-testid="drawing-canvas" className="drawing-canvas w-full"
           style={{ height: "300px", touchAction: "none" }}
@@ -116,13 +121,13 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t }) => {
         <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>{t("visionEnabled")}</p>
       </div>
 
-      <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: "1px solid var(--divider-subtle)" }}>
         <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>{t("expressShapes")}</p>
         <motion.button
           data-testid="analyze-draw-btn" onClick={handleSubmit} disabled={!hasDrawn || isAnalyzing}
           whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
           className="flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{ background: "linear-gradient(135deg, #C084FC 0%, #60A5FA 100%)", color: "#030303" }}
+          style={{ background: "var(--gradient-primary)", color: "var(--gradient-button-text)" }}
         >
           {isAnalyzing ? (
             <><Loader2 size={16} strokeWidth={1.5} className="animate-spin" />{t("analyzing")}</>

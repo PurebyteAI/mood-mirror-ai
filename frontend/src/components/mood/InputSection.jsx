@@ -23,9 +23,9 @@ export const InputSection = ({ onAnalyze, isAnalyzing, t, language }) => {
         <div
           className="inline-flex items-center gap-1 p-1 rounded-full"
           style={{
-            background: "rgba(0,0,0,0.4)",
+            background: "var(--chip-bg)",
             backdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            border: "1px solid var(--control-border)",
           }}
         >
           {TABS.map((tab) => {
@@ -39,7 +39,7 @@ export const InputSection = ({ onAnalyze, isAnalyzing, t, language }) => {
                 className="relative flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300"
                 style={{
                   color: isActive ? "var(--text-primary)" : "var(--text-muted)",
-                  background: isActive ? "rgba(255,255,255,0.1)" : "transparent",
+                  background: isActive ? "var(--chip-active-bg)" : "transparent",
                 }}
               >
                 <Icon size={16} strokeWidth={1.5} />
@@ -49,8 +49,8 @@ export const InputSection = ({ onAnalyze, isAnalyzing, t, language }) => {
                     layoutId="activeTab"
                     className="absolute inset-0 rounded-full"
                     style={{
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid var(--border-highlight)",
+                      background: "var(--bg-surface-soft)",
                     }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />

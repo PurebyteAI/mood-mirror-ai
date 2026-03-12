@@ -1,0 +1,87 @@
+:root {
+  --aurora-base: #faf8f5;
+  --aurora-surface: #f3efe8;
+  --aurora-surface-soft: #ece7df;
+  --aurora-glow: #f4e8d8;
+  --aurora-accent-olive: #98a58e;
+  --aurora-accent-forest: #6f7b68;
+  --aurora-accent-copper: #b88f70;
+  --aurora-text: #2e2e2e;
+  --aurora-text-secondary: #4d4d4d;
+  --aurora-text-muted: #646464;
+  --aurora-border: #b6ab9d;
+  --aurora-border-subtle: #cec4b8;
+  --aurora-chip: #efe8de;
+  --aurora-chip-active: #dfd4c6;
+  --aurora-focus: #8e7a63;
+  --aurora-shadow: 0 22px 50px rgba(90, 74, 54, 0.14);
+}
+
+.bg-aurora-glow {
+  background:
+    radial-gradient(800px circle at 50% 20%, rgba(244, 232, 216, 0.3) 0%, rgba(244, 232, 216, 0) 72%),
+    radial-gradient(650px circle at 15% 45%, rgba(152, 165, 142, 0.15) 0%, rgba(152, 165, 142, 0) 70%),
+    radial-gradient(620px circle at 85% 55%, rgba(111, 123, 104, 0.15) 0%, rgba(111, 123, 104, 0) 66%),
+    var(--aurora-base);
+}
+
+.text-aurora-primary {
+  color: var(--aurora-text);
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.text-aurora-secondary {
+  color: var(--aurora-text-secondary);
+}
+
+.text-aurora-muted {
+  color: var(--aurora-text-muted);
+}
+
+.aurora-card {
+  background: color-mix(in srgb, var(--aurora-surface) 86%, white 14%);
+  border: 1px solid var(--aurora-border-subtle);
+  box-shadow: var(--aurora-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.aurora-button {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--aurora-accent-copper) 72%, white 28%) 0%, color-mix(in srgb, var(--aurora-accent-olive) 70%, white 30%) 100%);
+  color: var(--aurora-text);
+  border: 1px solid color-mix(in srgb, var(--aurora-border) 72%, #000 28%);
+}
+
+@supports (color: light-dark(#000, #fff)) {
+  :root {
+    --aurora-adaptive-bg: light-dark(var(--aurora-base), #050505);
+    --aurora-adaptive-text: light-dark(var(--aurora-text), #ededed);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --aurora-text: #1f1f1f;
+    --aurora-text-secondary: #2c2c2c;
+    --aurora-text-muted: #383838;
+    --aurora-border: #7d7366;
+    --aurora-border-subtle: #8f8578;
+    --aurora-chip-active: #d2c4b3;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --aurora-base: Canvas;
+    --aurora-surface: Canvas;
+    --aurora-surface-soft: Canvas;
+    --aurora-text: CanvasText;
+    --aurora-text-secondary: CanvasText;
+    --aurora-text-muted: GrayText;
+    --aurora-border: CanvasText;
+    --aurora-border-subtle: CanvasText;
+    --aurora-chip: Canvas;
+    --aurora-chip-active: Highlight;
+  }
+}

@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
+from services.image_generation_service import ImageGenerationError, ImageGenerationService
 from services.openrouter_service import OpenRouterError, OpenRouterService
 from services.sqlite_store import SQLiteStore
 
@@ -43,11 +44,12 @@ CORS_ORIGINS = get_cors_origins()
 
 store = SQLiteStore()
 openrouter_service: Optional[OpenRouterService] = None
+image_generation_service: Optional[ImageGenerationService] = None
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    global openrouter_service
+    global openrouter_service, image_generation_service
 
     await store.init()
     try:
@@ -55,6 +57,11 @@ async def lifespan(_: FastAPI):
     except OpenRouterError as e:
         openrouter_service = None
         logger.error(f"OpenRouter initialization failed: {e}")
+    try:
+        image_generation_service = ImageGenerationService()
+    except Exception as e:
+        image_generation_service = None
+        logger.error(f"Image service initialization failed: {e}")
 
     try:
         yield
@@ -62,6 +69,9 @@ async def lifespan(_: FastAPI):
         if openrouter_service is not None:
             await openrouter_service.close()
             openrouter_service = None
+        if image_generation_service is not None:
+            await image_generation_service.close()
+            image_generation_service = None
 
 app = FastAPI(lifespan=lifespan)
 api_router = APIRouter(prefix="/api")
@@ -106,6 +116,22 @@ class JournalEntry(BaseModel):
 class SaveToJournalRequest(BaseModel):
     analysis_id: str
     note: str = ""
+
+
+class ImageGenerationRequest(BaseModel):
+    user_input: str
+    response_text: str
+    dominant_mood: str
+    response_type: str
+    language: Literal["en", "de"] = "en"
+
+
+class ImageGenerationResponse(BaseModel):
+    generated: bool
+    image_url: Optional[str] = None
+    image_base64: Optional[str] = None
+    prompt: str
+    message: str
 
 JSON_FORMAT = """
 {
@@ -290,6 +316,42 @@ async def delete_journal_entry(entry_id: str):
     if not deleted:
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"message": "Removed from journal"}
+
+
+@api_router.post("/image/generate", response_model=ImageGenerationResponse)
+async def generate_image(request: ImageGenerationRequest):
+    fallback_prompt = (
+        f"Funny mood illustration for {request.dominant_mood}: "
+        f"{request.response_type} tone inspired by '{request.user_input[:80]}'"
+    )
+    if image_generation_service is None:
+        return ImageGenerationResponse(
+            generated=False,
+            prompt=fallback_prompt,
+            message="Image service unavailable",
+        )
+    try:
+        result = await image_generation_service.generate(
+            user_input=request.user_input,
+            response_text=request.response_text,
+            dominant_mood=request.dominant_mood,
+            response_type=request.response_type,
+            language=request.language,
+        )
+        return ImageGenerationResponse(
+            generated=True,
+            image_url=result.get("image_url"),
+            image_base64=result.get("image_base64"),
+            prompt=result["prompt"],
+            message="Image generated",
+        )
+    except ImageGenerationError as e:
+        logger.error(f"Image generation error: {e}")
+        return ImageGenerationResponse(
+            generated=False,
+            prompt=fallback_prompt,
+            message="Image generation failed",
+        )
 
 
 app.include_router(api_router)

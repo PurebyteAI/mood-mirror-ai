@@ -32,7 +32,7 @@ export const TextInput = ({ onAnalyze, isAnalyzing, t }) => {
         }}
         disabled={isAnalyzing}
       />
-      <div className="flex items-center justify-between mt-6 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="flex items-center justify-between mt-6 pt-4" style={{ borderTop: "1px solid var(--divider-subtle)" }}>
         <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
           {text.length > 0 ? `${text.length} ${t("characters")}` : t("ctrlEnter")}
         </p>
@@ -44,8 +44,8 @@ export const TextInput = ({ onAnalyze, isAnalyzing, t }) => {
           whileTap={{ scale: 0.95 }}
           className="flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
           style={{
-            background: "linear-gradient(135deg, #C084FC 0%, #60A5FA 100%)",
-            color: "#030303",
+            background: "var(--gradient-primary)",
+            color: "var(--gradient-button-text)",
           }}
         >
           {isAnalyzing ? (
