@@ -35,6 +35,15 @@ let webpackConfig = {
     },
     configure: (webpackConfig) => {
 
+      // Fix: source-map-loader fails on recharts→immer cross-package source maps.
+      // Exclude all node_modules from the enforce:'pre' source-map-loader rule.
+      const preRule = webpackConfig.module.rules.find(
+        (r) => r.enforce === "pre" && String(r.use) === "source-map-loader"
+      );
+      if (preRule) {
+        preRule.exclude = /node_modules/;
+      }
+
       // Add ignored patterns to reduce watched directories
         webpackConfig.watchOptions = {
           ...webpackConfig.watchOptions,

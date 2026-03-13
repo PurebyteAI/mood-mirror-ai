@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
+import asyncio
+import json
 import logging
 import os
 from pathlib import Path
+import sys
 from typing import List, Literal, Optional
 import uuid
 
@@ -16,6 +19,12 @@ import uvicorn
 from services.image_generation_service import ImageGenerationError, ImageGenerationService
 from services.openrouter_service import OpenRouterError, OpenRouterService
 from services.sqlite_store import SQLiteStore
+
+try:
+    from livekit.api import AccessToken, VideoGrants
+    _LIVEKIT_AVAILABLE = True
+except ImportError:
+    _LIVEKIT_AVAILABLE = False
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -46,8 +55,15 @@ CORS_ORIGINS = get_cors_origins()
 store = SQLiteStore()
 openrouter_service: Optional[OpenRouterService] = None
 image_generation_service: Optional[ImageGenerationService] = None
-
 groq_client: Optional[AsyncOpenAI] = None
+_agent_proc: Optional[asyncio.subprocess.Process] = None
+
+
+def _livekit_configured() -> bool:
+    return all(
+        os.environ.get(k, "").strip()
+        for k in ("LIVEKIT_API_KEY", "LIVEKIT_API_SECRET", "LIVEKIT_URL")
+    )
 
 
 def _init_groq_client() -> Optional[AsyncOpenAI]:
@@ -59,7 +75,7 @@ def _init_groq_client() -> Optional[AsyncOpenAI]:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    global openrouter_service, image_generation_service, groq_client
+    global openrouter_service, image_generation_service, groq_client, _agent_proc
 
     await store.init()
     try:
@@ -77,9 +93,32 @@ async def lifespan(_: FastAPI):
     if groq_client is None:
         logger.warning("GROQ_API_KEY not set — transcription endpoint will be unavailable")
 
+    # Auto-start LiveKit agent worker if credentials are present
+    if _livekit_configured():
+        agent_script = ROOT_DIR / "services" / "agent.py"
+        try:
+            _agent_proc = await asyncio.create_subprocess_exec(
+                sys.executable, str(agent_script), "start",
+                cwd=str(ROOT_DIR),
+                env=os.environ.copy(),
+            )
+            logger.info(f"LiveKit agent started (pid={_agent_proc.pid})")
+        except Exception as e:
+            _agent_proc = None
+            logger.error(f"Failed to start LiveKit agent: {e}")
+    else:
+        logger.warning("LiveKit not configured — Talk tab will be unavailable")
+
     try:
         yield
     finally:
+        if _agent_proc is not None and _agent_proc.returncode is None:
+            _agent_proc.terminate()
+            try:
+                await asyncio.wait_for(_agent_proc.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                _agent_proc.kill()
+            logger.info("LiveKit agent stopped")
         if openrouter_service is not None:
             await openrouter_service.close()
             openrouter_service = None
@@ -146,6 +185,12 @@ class ImageGenerationResponse(BaseModel):
     image_base64: Optional[str] = None
     prompt: str
     message: str
+
+
+class LiveKitTokenRequest(BaseModel):
+    room_name: str
+    participant_name: str = "user"
+    language: str = "en"
 
 JSON_FORMAT = """
 {
@@ -289,6 +334,26 @@ async def analyze_mood(request: MoodAnalysisRequest):
         doc = fallback.model_dump()
         await store.save_analysis(doc)
         return fallback
+
+
+@api_router.post("/livekit/token")
+async def get_livekit_token(req: LiveKitTokenRequest):
+    if not _LIVEKIT_AVAILABLE:
+        raise HTTPException(status_code=503, detail="livekit SDK not installed")
+    api_key = os.environ.get("LIVEKIT_API_KEY", "").strip()
+    api_secret = os.environ.get("LIVEKIT_API_SECRET", "").strip()
+    livekit_url = os.environ.get("LIVEKIT_URL", "").strip()
+    if not all([api_key, api_secret, livekit_url]):
+        raise HTTPException(status_code=503, detail="LiveKit not configured — set LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL in .env")
+    token = (
+        AccessToken(api_key, api_secret)
+        .with_identity(req.participant_name)
+        .with_name(req.participant_name)
+        .with_grants(VideoGrants(room_join=True, room=req.room_name))
+        .with_metadata(json.dumps({"language": req.language}))
+        .to_jwt()
+    )
+    return {"token": token, "url": livekit_url}
 
 
 @api_router.post("/transcribe")

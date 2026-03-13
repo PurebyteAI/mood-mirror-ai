@@ -119,3 +119,6 @@ watchfiles==1.1.1
 websockets==16.0
 yarl==1.23.0
 zipp==3.23.0
+livekit~=1.0
+livekit-agents[openai,silero,rime]~=1.2
+groq
