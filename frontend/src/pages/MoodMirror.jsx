@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { AlertCircle, X } from "lucide-react";
 import { MoodOrb } from "@/components/mood/MoodOrb";
 import { InputSection } from "@/components/mood/InputSection";
 import { MoodResult } from "@/components/mood/MoodResult";
@@ -18,12 +19,14 @@ const MoodMirror = () => {
   const [currentView, setCurrentView] = useState("mirror");
   const [history, setHistory] = useState([]);
   const [language, setLanguage] = useState("en");
+  const [analysisError, setAnalysisError] = useState("");
 
   const { t } = useTranslation(language);
 
   const analyzeMood = useCallback(async (inputType, content) => {
     setIsAnalyzing(true);
     setAnalysis(null);
+    setAnalysisError("");
     try {
       const res = await axios.post(`${API_BASE}/analyze`, {
         input_type: inputType,
@@ -34,6 +37,13 @@ const MoodMirror = () => {
       setDominantMood(res.data.dominant_mood);
     } catch (err) {
       console.error("Analysis failed:", err);
+      const detail = err?.response?.data?.detail;
+      const status = err?.response?.status;
+      if (!err?.response) {
+        setAnalysisError("Cannot reach the backend server. Make sure it is running on port 8001.");
+      } else {
+        setAnalysisError(detail || `Analysis failed (${status || "unknown error"}). Please try again.`);
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -56,6 +66,7 @@ const MoodMirror = () => {
   const resetMirror = useCallback(() => {
     setAnalysis(null);
     setDominantMood(null);
+    setAnalysisError("");
   }, []);
 
   return (
@@ -161,6 +172,36 @@ const MoodMirror = () => {
 
       {/* Ambient music control */}
       <AmbientControl mood={dominantMood} label={t("ambientMusic")} />
+
+      {/* Error toast */}
+      <AnimatePresence>
+        {analysisError && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            className="fixed bottom-6 z-50 flex items-start gap-3 px-5 py-4 rounded-2xl shadow-xl"
+            style={{
+              left: "50%",
+              x: "-50%",
+              background: "rgba(248,113,113,0.12)",
+              border: "1px solid rgba(248,113,113,0.4)",
+              backdropFilter: "blur(12px)",
+              maxWidth: "480px",
+              width: "calc(100vw - 48px)",
+            }}
+          >
+            <AlertCircle size={18} strokeWidth={1.5} style={{ color: "#F87171", flexShrink: 0, marginTop: 2 }} />
+            <p className="text-sm flex-1" style={{ color: "#F87171" }}>{analysisError}</p>
+            <button
+              onClick={() => setAnalysisError("")}
+              style={{ color: "rgba(248,113,113,0.6)", flexShrink: 0 }}
+            >
+              <X size={16} strokeWidth={1.5} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
