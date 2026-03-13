@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Mic, MicOff, Send, Loader2 } from "lucide-react";
+import axios from "axios";
+import { API_BASE } from "@/lib/api";
 
 const WaveformCanvas = ({ analyserRef, isRecording }) => {
   const canvasRef = useRef(null);
@@ -83,44 +85,18 @@ const WaveformCanvas = ({ analyserRef, isRecording }) => {
 
 export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [supported, setSupported] = useState(true);
-  const recognitionRef = useRef(null);
+  const [error, setError] = useState("");
+
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
   const analyserRef = useRef(null);
   const audioContextRef = useRef(null);
   const streamRef = useRef(null);
 
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) { setSupported(false); return; }
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = language === "de" ? "de-DE" : "en-US";
-    recognition.onresult = (event) => {
-      let finalTranscript = "";
-      for (let i = 0; i < event.results.length; i++) finalTranscript += event.results[i][0].transcript;
-      setTranscript(finalTranscript);
-    };
-    recognition.onerror = () => { setIsRecording(false); stopAudio(); };
-    recognition.onend = () => { setIsRecording(false); stopAudio(); };
-    recognitionRef.current = recognition;
-    return () => { stopAudio(); };
-  }, [language]);
-
-  const startAudio = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      audioContextRef.current = audioContext;
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-    } catch (err) { console.error("Mic access failed:", err); }
-  };
+  // Cleanup on unmount
+  useEffect(() => () => stopAudio(), []);
 
   const stopAudio = () => {
     if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
@@ -128,17 +104,75 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
     analyserRef.current = null;
   };
 
+  const transcribeBlob = useCallback(async (blob) => {
+    setIsTranscribing(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", blob, "recording.webm");
+      formData.append("language", language === "de" ? "de" : "en");
+      const res = await axios.post(`${API_BASE}/transcribe`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setTranscript(res.data.text || "");
+    } catch (err) {
+      console.error("Transcription failed:", err);
+      setError(t("transcriptionFailed") || "Transcription failed. Please try again.");
+    } finally {
+      setIsTranscribing(false);
+    }
+  }, [language, t]);
+
   const toggleRecording = async () => {
-    if (!recognitionRef.current) return;
     if (isRecording) {
-      recognitionRef.current.stop();
+      // Stop recording — MediaRecorder.onstop will fire and transcribe
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
       setIsRecording(false);
       stopAudio();
-    } else {
-      setTranscript("");
-      await startAudio();
-      recognitionRef.current.start();
+      return;
+    }
+
+    setTranscript("");
+    setError("");
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      // Set up waveform analyser
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = audioContext;
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      // Determine best supported MIME type
+      const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/ogg"]
+        .find((m) => MediaRecorder.isTypeSupported(m)) || "";
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: mimeType || "audio/webm" });
+        chunksRef.current = [];
+        transcribeBlob(blob);
+      };
+
+      recorder.start(100); // collect data every 100ms
+      mediaRecorderRef.current = recorder;
       setIsRecording(true);
+    } catch (err) {
+      console.error("Mic access failed:", err);
+      setError(t("micAccessFailed") || "Microphone access denied. Please allow mic access and try again.");
     }
   };
 
@@ -147,15 +181,7 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
     onAnalyze("speech", transcript.trim());
   };
 
-  if (!supported) {
-    return (
-      <div className="glass-card p-8 text-center" data-testid="speech-not-supported">
-        <MicOff size={40} strokeWidth={1.5} className="mx-auto mb-4" style={{ color: "var(--text-muted)" }} />
-        <p className="text-lg font-light" style={{ color: "var(--text-secondary)" }}>{t("speechNotSupported")}</p>
-        <p className="text-sm mt-2" style={{ color: "var(--text-muted)" }}>{t("tryChromeEdge")}</p>
-      </div>
-    );
-  }
+  const isBusy = isAnalyzing || isTranscribing;
 
   return (
     <div className="glass-card p-6 md:p-8" data-testid="speech-input-section">
@@ -179,33 +205,43 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
               border: isRecording ? "2px solid rgba(248,113,113,0.5)" : "2px solid var(--control-border)",
               boxShadow: isRecording ? "0 0 40px rgba(248,113,113,0.4)" : "none",
             }}
-            disabled={isAnalyzing}
+            disabled={isBusy && !isRecording}
           >
-            {isRecording ? <MicOff size={28} strokeWidth={1.5} color="var(--gradient-button-text)" /> : <Mic size={28} strokeWidth={1.5} style={{ color: "var(--text-secondary)" }} />}
+            {isRecording
+              ? <MicOff size={28} strokeWidth={1.5} color="var(--gradient-button-text)" />
+              : isTranscribing
+                ? <Loader2 size={28} strokeWidth={1.5} className="animate-spin" style={{ color: "var(--text-secondary)" }} />
+                : <Mic size={28} strokeWidth={1.5} style={{ color: "var(--text-secondary)" }} />}
           </motion.button>
         </div>
         <p className="mt-4 text-sm font-mono" style={{ color: isRecording ? "#F87171" : "var(--text-muted)" }} data-testid="recording-status">
-          {isRecording ? t("listening") : t("tapToSpeak")}
+          {isRecording ? (t("listening") || "Listening…") : isTranscribing ? (t("transcribing") || "Transcribing…") : (t("tapToSpeak") || "Tap to speak")}
         </p>
       </div>
 
+      {error && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-4 rounded-xl" style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
+          <p className="text-sm" style={{ color: "#F87171" }}>{error}</p>
+        </motion.div>
+      )}
+
       {transcript && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-4 rounded-xl" style={{ background: "var(--bg-surface-soft)", border: "1px solid var(--divider-subtle)" }}>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-4 rounded-xl" style={{ background: "var(--bg-surface-soft)", border: "1px solid var(--divider-subtle)" }}>
           <p data-testid="speech-transcript" className="text-lg font-light leading-relaxed italic" style={{ color: "var(--text-primary)" }}>"{transcript}"</p>
         </motion.div>
       )}
 
       <div className="flex items-center justify-between pt-4" style={{ borderTop: "1px solid var(--divider-subtle)" }}>
         <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-          {transcript ? `${transcript.split(" ").length} ${t("wordsCaptured")}` : t("expressVoice")}
+          {transcript ? `${transcript.split(" ").length} ${t("wordsCaptured") || "words captured"}` : t("expressVoice") || "Express yourself with your voice"}
         </p>
         <motion.button
-          data-testid="analyze-speech-btn" onClick={handleSubmit} disabled={!transcript.trim() || isAnalyzing}
+          data-testid="analyze-speech-btn" onClick={handleSubmit} disabled={!transcript.trim() || isBusy}
           whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
           className="flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
           style={{ background: "var(--gradient-primary)", color: "var(--gradient-button-text)" }}
         >
-          {isAnalyzing ? (<><Loader2 size={16} strokeWidth={1.5} className="animate-spin" />{t("analyzing")}</>) : (<><Send size={16} strokeWidth={1.5} />{t("mirrorMe")}</>)}
+          {isAnalyzing ? (<><Loader2 size={16} strokeWidth={1.5} className="animate-spin" />{t("analyzing") || "Analyzing…"}</>) : (<><Send size={16} strokeWidth={1.5} />{t("mirrorMe") || "Mirror Me"}</>)}
         </motion.button>
       </div>
     </div>

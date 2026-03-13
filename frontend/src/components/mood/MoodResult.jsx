@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Quote, Sparkles, BookmarkPlus, Check, Download, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Quote, Sparkles, BookmarkPlus, Check, Download, Image as ImageIcon, Wand2 } from "lucide-react";
 import { MoodChart } from "@/components/mood/MoodChart";
 import { API_BASE } from "@/lib/api";
 import axios from "axios";
@@ -59,38 +59,30 @@ export const MoodResult = ({ analysis, onReset, t, language }) => {
     finally { setSaving(false); }
   };
 
-  useEffect(() => {
-    let active = true;
-    const generateImage = async () => {
-      setIsImageLoading(true);
-      setImageError("");
-      setImageData(null);
-      try {
-        const res = await axios.post(`${API_BASE}/image/generate`, {
-          user_input: analysis.input_preview || "",
-          response_text: analysis.response_text,
-          dominant_mood: analysis.dominant_mood,
-          response_type: analysis.response_type,
-          language: language || "en",
-        });
-        if (!active) return;
-        if (res.data?.generated && (res.data?.image_url || res.data?.image_base64)) {
-          setImageData(res.data);
-        } else {
-          setImageError(t("imageUnavailable"));
-        }
-      } catch (err) {
-        if (!active) return;
+  const generateImage = useCallback(async () => {
+    if (isImageLoading) return;
+    setIsImageLoading(true);
+    setImageError("");
+    setImageData(null);
+    try {
+      const res = await axios.post(`${API_BASE}/image/generate`, {
+        user_input: analysis.input_preview || "",
+        response_text: analysis.response_text,
+        dominant_mood: analysis.dominant_mood,
+        response_type: analysis.response_type,
+        language: language || "en",
+      });
+      if (res.data?.generated && (res.data?.image_url || res.data?.image_base64)) {
+        setImageData(res.data);
+      } else {
         setImageError(t("imageUnavailable"));
-      } finally {
-        if (active) setIsImageLoading(false);
       }
-    };
-    generateImage();
-    return () => {
-      active = false;
-    };
-  }, [analysis, language, t]);
+    } catch {
+      setImageError(t("imageUnavailable"));
+    } finally {
+      setIsImageLoading(false);
+    }
+  }, [analysis, language, t, isImageLoading]);
 
   const downloadImage = async () => {
     if (!imageData || isDownloading) return;
@@ -157,7 +149,7 @@ export const MoodResult = ({ analysis, onReset, t, language }) => {
               <div className="relative">
                 <Quote size={32} strokeWidth={1} className="absolute -top-2 -left-2 opacity-20" style={{ color: dominantColor }} />
                 <p data-testid="ai-response-text" className="font-display text-xl md:text-2xl font-normal leading-relaxed pl-8" style={{ color: "var(--text-primary)", whiteSpace: "pre-line" }}>
-                  {analysis.response_text}
+                  {(analysis.response_text || "").replace(/\\n/g, "\n")}
                 </p>
               </div>
             </div>
@@ -243,21 +235,51 @@ export const MoodResult = ({ analysis, onReset, t, language }) => {
 
         <div
           className="w-full rounded-2xl overflow-hidden flex items-center justify-center"
-          style={{ height: "500px", background: "var(--bg-surface-soft)" }}
+          style={{ minHeight: imageData ? "500px" : "200px", background: "var(--bg-surface-soft)", transition: "min-height 0.4s ease" }}
         >
           {isImageLoading ? (
-            <p className="text-sm font-mono" style={{ color: "var(--text-muted)" }}>{t("generatingImage")}</p>
+            <div className="flex flex-col items-center gap-3">
+              <Wand2 size={28} strokeWidth={1.5} className="animate-pulse" style={{ color: dominantColor }} />
+              <p className="text-sm font-mono" style={{ color: "var(--text-muted)" }}>{t("generatingImage")}</p>
+            </div>
           ) : imageData ? (
             <img
               src={imageData.image_url || imageData.image_base64}
               alt={t("generatedMoodImageAlt")}
               className="w-full h-full object-cover"
+              style={{ minHeight: "500px" }}
             />
-          ) : (
+          ) : imageError ? (
             <div className="text-center px-6">
               <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>{t("imageFallbackTitle")}</p>
-              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>{imageError || t("imageFallbackHint")}</p>
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>{imageError}</p>
             </div>
+          ) : (
+            <motion.button
+              onClick={generateImage}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center gap-4 px-10 py-8 rounded-2xl transition-all duration-300"
+              style={{
+                border: `1.5px dashed ${dominantColor}55`,
+                background: `${dominantColor}08`,
+              }}
+            >
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center"
+                style={{ background: `${dominantColor}18` }}
+              >
+                <Wand2 size={26} strokeWidth={1.5} style={{ color: dominantColor }} />
+              </div>
+              <div className="text-center">
+                <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {t("visualizeMyMood") || "Visualize My Mood"}
+                </p>
+                <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                  {t("visualizeHint") || "Generate a unique AI artwork for this moment"}
+                </p>
+              </div>
+            </motion.button>
           )}
         </div>
       </motion.div>

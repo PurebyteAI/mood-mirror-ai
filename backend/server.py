@@ -7,7 +7,8 @@ from typing import List, Literal, Optional
 import uuid
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, File, Form, HTTPException, UploadFile
+from openai import AsyncOpenAI
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
@@ -46,10 +47,19 @@ store = SQLiteStore()
 openrouter_service: Optional[OpenRouterService] = None
 image_generation_service: Optional[ImageGenerationService] = None
 
+groq_client: Optional[AsyncOpenAI] = None
+
+
+def _init_groq_client() -> Optional[AsyncOpenAI]:
+    api_key = os.environ.get("GROQ_API_KEY", "").strip()
+    if not api_key:
+        return None
+    return AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    global openrouter_service, image_generation_service
+    global openrouter_service, image_generation_service, groq_client
 
     await store.init()
     try:
@@ -62,6 +72,10 @@ async def lifespan(_: FastAPI):
     except Exception as e:
         image_generation_service = None
         logger.error(f"Image service initialization failed: {e}")
+
+    groq_client = _init_groq_client()
+    if groq_client is None:
+        logger.warning("GROQ_API_KEY not set — transcription endpoint will be unavailable")
 
     try:
         yield
@@ -275,6 +289,28 @@ async def analyze_mood(request: MoodAnalysisRequest):
         doc = fallback.model_dump()
         await store.save_analysis(doc)
         return fallback
+
+
+@api_router.post("/transcribe")
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    language: str = Form(default="en"),
+):
+    if groq_client is None:
+        raise HTTPException(status_code=503, detail="Transcription service not configured — set GROQ_API_KEY")
+    audio_bytes = await file.read()
+    try:
+        result = await groq_client.audio.transcriptions.create(
+            file=(file.filename or "audio.webm", audio_bytes, file.content_type or "audio/webm"),
+            model="whisper-large-v3-turbo",
+            language=language if language in ("en", "de") else "en",
+            response_format="text",
+        )
+        text = result if isinstance(result, str) else getattr(result, "text", str(result))
+        return {"text": text}
+    except Exception as e:
+        logger.error(f"Groq transcription error: {e}")
+        raise HTTPException(status_code=502, detail="Transcription failed")
 
 
 @api_router.get("/history")
