@@ -59,65 +59,65 @@
 }
 
 .light {
-  /* ── Warm Forest Theme ──────────────────────────────────────── */
-  --bg-base: #1c2415;
-  --bg-surface: #252e1a;
-  --bg-surface-soft: rgba(55, 40, 20, 0.55);
-  --bg-elevated: rgba(38, 28, 16, 0.92);
-  --bg-elevated-soft: rgba(50, 38, 22, 0.5);
-  --text-primary: #e8d5b0;
-  --text-secondary: #b8a07a;
-  --text-muted: #7a6848;
-  --border-subtle: rgba(100, 78, 48, 0.35);
-  --border-highlight: rgba(150, 110, 60, 0.55);
-  --divider-subtle: rgba(90, 70, 40, 0.3);
-  --chip-bg: rgba(28, 20, 10, 0.65);
-  --chip-active-bg: rgba(105, 78, 42, 0.6);
-  --card-hover-bg: rgba(100, 78, 42, 0.2);
-  --control-bg: rgba(48, 36, 20, 0.55);
-  --control-border: rgba(105, 80, 46, 0.45);
-  --wave-bg: #1a1810;
-  --focus-ring: rgba(200, 120, 50, 0.45);
-  --gradient-button-text: #f0e5d0;
-  /* Shadcn tokens */
-  --background: 90 25% 12%;
-  --foreground: 38 50% 82%;
-  --card: 35 30% 17%;
-  --card-foreground: 38 50% 82%;
-  --popover: 35 30% 17%;
-  --popover-foreground: 38 50% 82%;
-  --primary: 28 62% 52%;
-  --primary-foreground: 38 50% 92%;
-  --secondary: 35 20% 22%;
-  --secondary-foreground: 38 35% 75%;
-  --muted: 30 18% 22%;
-  --muted-foreground: 35 28% 62%;
-  --accent: 85 28% 40%;
-  --accent-foreground: 38 50% 92%;
-  --destructive: 10 60% 50%;
+  /* ── Bright Light Theme ──────────────────────────────────────── */
+  --bg-base: #F5F6FA;
+  --bg-surface: #FFFFFF;
+  --bg-surface-soft: rgba(0, 0, 0, 0.03);
+  --bg-elevated: rgba(255, 255, 255, 0.90);
+  --bg-elevated-soft: rgba(255, 255, 255, 0.65);
+  --text-primary: #0D0F1A;
+  --text-secondary: #4B5568;
+  --text-muted: #9CA3AF;
+  --border-subtle: rgba(0, 0, 0, 0.07);
+  --border-highlight: rgba(0, 0, 0, 0.13);
+  --divider-subtle: rgba(0, 0, 0, 0.05);
+  --chip-bg: rgba(0, 0, 0, 0.05);
+  --chip-active-bg: rgba(147, 51, 234, 0.11);
+  --card-hover-bg: rgba(0, 0, 0, 0.03);
+  --control-bg: rgba(0, 0, 0, 0.04);
+  --control-border: rgba(0, 0, 0, 0.10);
+  --wave-bg: #ECEDF5;
+  --focus-ring: rgba(147, 51, 234, 0.28);
+  --gradient-button-text: #FFFFFF;
+  /* Shadcn HSL tokens */
+  --background: 230 30% 97%;
+  --foreground: 222 47% 5%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 5%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 5%;
+  --primary: 266 83% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 92%;
+  --secondary-foreground: 222 47% 15%;
+  --muted: 220 14% 92%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 210 89% 52%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 58%;
   --destructive-foreground: 0 0% 98%;
-  --border: 35 22% 28%;
-  --input: 35 22% 22%;
-  --ring: 28 62% 52%;
-  /* Mood colors — warm, earthy, visible on dark background */
-  --mood-happy: #d4a840;
-  --mood-sad: #6898d0;
-  --mood-angry: #c86858;
-  --mood-calm: #5aaa78;
-  --mood-stress: #c87840;
-  --mood-curiosity: #9870c0;
-  /* Page gradient — warm forest depth */
+  --border: 220 13% 88%;
+  --input: 220 13% 90%;
+  --ring: 266 83% 55%;
+  /* Mood colors — vivid for light background */
+  --mood-happy: #D97706;
+  --mood-sad: #2563EB;
+  --mood-angry: #DC2626;
+  --mood-calm: #059669;
+  --mood-stress: #EA580C;
+  --mood-curiosity: #9333EA;
+  /* Page gradient — soft lavender-to-white */
   --page-gradient:
-    radial-gradient(800px circle at 50% 22%, rgba(90, 70, 28, 0.28) 0%, rgba(90, 70, 28, 0) 72%),
-    radial-gradient(680px circle at 14% 52%, rgba(55, 80, 38, 0.22) 0%, rgba(55, 80, 38, 0) 68%),
-    radial-gradient(660px circle at 87% 48%, rgba(110, 75, 30, 0.18) 0%, rgba(110, 75, 30, 0) 64%),
-    #1c2415;
-  /* Orb — screen blend works on dark bg */
-  --orb-blend-mode: screen;
-  --orb-primary-opacity: 0.65;
-  --orb-secondary-opacity: 0.45;
-  /* Forest copper-to-olive gradient button */
-  --gradient-primary: linear-gradient(135deg, #c87830 0%, #7a8a50 100%);
+    radial-gradient(900px circle at 50% 0%,   rgba(167, 139, 250, 0.14) 0%, rgba(167, 139, 250, 0) 70%),
+    radial-gradient(700px circle at 12% 65%,  rgba(96,  165, 250, 0.09) 0%, rgba(96,  165, 250, 0) 65%),
+    radial-gradient(700px circle at 88% 45%,  rgba(192, 132, 252, 0.08) 0%, rgba(192, 132, 252, 0) 60%),
+    #F5F6FA;
+  /* Orb — multiply blend on bright bg */
+  --orb-blend-mode: multiply;
+  --orb-primary-opacity: 0.55;
+  --orb-secondary-opacity: 0.40;
+  /* Purple-to-blue gradient */
+  --gradient-primary: linear-gradient(135deg, #9333EA 0%, #3B82F6 100%);
 }
 
 * {
@@ -151,11 +151,28 @@ body::before {
 }
 
 html.light body::before {
-  opacity: 0.025;
+  opacity: 0.015;
 }
 
 .theme-transition {
   transition: background-color 280ms ease, color 280ms ease, border-color 280ms ease, box-shadow 280ms ease, filter 280ms ease;
+}
+
+/* Ensure all elements smoothly follow theme changes.
+   Only color-related properties are included so Framer Motion
+   (which animates transform/opacity) is not affected. */
+*, *::before, *::after {
+  transition-property: background-color, color, border-color, box-shadow, fill, stroke;
+  transition-duration: 280ms;
+  transition-timing-function: ease;
+}
+
+/* Restore instant transitions on elements that need them (e.g. animated spinners, orbs) */
+.no-theme-transition,
+.no-theme-transition *,
+[data-no-theme-transition],
+[data-no-theme-transition] * {
+  transition-property: none !important;
 }
 
 h1, h2, h3, h4 {
@@ -185,25 +202,23 @@ h1, h2, h3, h4 {
 }
 
 .light .glass-card {
-  background:
-    radial-gradient(400px circle at 18% 28%, rgba(58, 80, 35, 0.18) 0%, rgba(58, 80, 35, 0) 70%),
-    radial-gradient(360px circle at 82% 72%, rgba(160, 95, 38, 0.14) 0%, rgba(160, 95, 38, 0) 65%),
-    rgba(38, 28, 16, 0.92);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(200, 160, 80, 0.07);
-  border-color: rgba(105, 80, 46, 0.45);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.07);
 }
 
 .light textarea::placeholder,
 .light input::placeholder {
-  color: #7a6848;
-  opacity: 0.6;
+  color: #9CA3AF;
+  opacity: 0.8;
 }
 
 .light .glass-card-light {
-  border-color: rgba(100, 78, 46, 0.4);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.60);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
 .glass-card-light {

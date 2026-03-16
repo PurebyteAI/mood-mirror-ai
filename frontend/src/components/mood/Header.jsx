@@ -28,7 +28,7 @@ export const Header = ({ currentView, onNav, language, onLanguageChange, t }) =>
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
           style={{
-            background: "linear-gradient(135deg, #C084FC 0%, #60A5FA 100%)",
+            background: "var(--gradient-primary)",
           }}
         >
           <Sparkles size={18} strokeWidth={1.5} color="var(--gradient-button-text)" />
