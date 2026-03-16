@@ -13,7 +13,12 @@ class SQLiteStore:
         default_path = Path(__file__).resolve().parent.parent / "mood_mirror.db"
         self.db_path = os.environ.get("SQLITE_DB_PATH", str(default_path))
 
+    def _ensure_db_directory(self) -> None:
+        db_parent = Path(self.db_path).expanduser().resolve().parent
+        db_parent.mkdir(parents=True, exist_ok=True)
+
     async def init(self) -> None:
+        self._ensure_db_directory()
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
                 """

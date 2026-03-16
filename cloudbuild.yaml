@@ -1,0 +1,38 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/${_IMAGE_NAME}
+      - ./backend
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - gcr.io/$PROJECT_ID/${_IMAGE_NAME}
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --image
+      - gcr.io/$PROJECT_ID/${_IMAGE_NAME}
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --port
+      - '8080'
+      - --set-env-vars
+      - BACKEND_HOST=0.0.0.0,BACKEND_PORT=8080,BACKEND_RELOAD=false,SQLITE_DB_PATH=/tmp/mood_mirror.db
+
+images:
+  - gcr.io/$PROJECT_ID/${_IMAGE_NAME}
+
+substitutions:
+  _IMAGE_NAME: backend
+  _SERVICE_NAME: mood-mirror-backend
+  _REGION: europe-west1

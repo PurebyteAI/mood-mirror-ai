@@ -37,6 +37,26 @@ From repo root:
 docker compose up --build -d
 ```
 
+### Backend Only from Prebuilt Image
+
+If you already pushed the backend image to Google Container Registry and want to run only the backend locally using `backend/.env`, use:
+
+```bash
+docker compose -f docker-compose.backend.yml up -d
+```
+
+This file:
+- uses `gcr.io/mood-backend-ai/backend`
+- loads environment variables from `backend/.env`
+- exposes the backend on `http://localhost:8080`
+- persists SQLite data in a Docker volume
+
+To stop it:
+
+```bash
+docker compose -f docker-compose.backend.yml down
+```
+
 ### 4. Access services
 - Frontend: `http://localhost:3000`
 - Backend API: `http://localhost:8001`
@@ -125,6 +145,80 @@ docker push <your-registry>/mood-mirror-frontend:latest
 ```
 
 Then deploy with your platform using the same env vars from `.env.example`.
+
+## Google Cloud Notes
+
+If you deploy the backend container to Google Cloud:
+
+- `docker-compose.backend.yml` is useful for local runs on your machine or on a VM.
+- It is not used by Cloud Run directly.
+- Cloud Run does not read your local `backend/.env` file.
+- For Cloud Run, set environment variables or secrets in the Cloud Run service configuration.
+- `cloudbuild.yaml` is included to build, push, and deploy the backend service.
+
+Example local run with compose:
+
+```bash
+docker compose -f docker-compose.backend.yml up -d
+```
+
+Example direct run without compose:
+
+```bash
+docker run --rm -p 8080:8080 --env-file backend/.env gcr.io/mood-backend-ai/backend
+```
+
+### Cloud Build + Cloud Run
+
+The repository includes [cloudbuild.yaml](cloudbuild.yaml) for backend deployment.
+
+It does three things:
+- builds the backend image from `backend/`
+- pushes it to `gcr.io/$PROJECT_ID/mood-backend-ai/backend`
+- deploys it to Cloud Run as `mood-mirror-backend`
+
+Run it with:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml
+```
+
+If you want a different region or service name:
+
+```bash
+gcloud builds submit \
+	--config cloudbuild.yaml \
+	--substitutions _REGION=asia-south1,_SERVICE_NAME=mood-mirror-backend,_IMAGE_NAME=mood-backend-ai/backend
+```
+
+### Cloud Run runtime notes
+
+- Cloud Run exposes one HTTP port, so the backend image listens on `8080`
+- `SQLITE_DB_PATH` is set to `/tmp/mood_mirror.db` on Cloud Run
+- `/tmp` on Cloud Run is ephemeral, so SQLite data is lost when instances restart
+- for persistent production data, move to Cloud SQL or another external database
+
+### Set secrets on Cloud Run
+
+Your local `backend/.env` is not uploaded automatically. Set secrets in Cloud Run after deployment.
+
+Example:
+
+```bash
+gcloud run services update mood-mirror-backend \
+	--region us-central1 \
+	--update-env-vars OPENROUTER_BASE_URL=https://openrouter.ai/api/v1,OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free
+```
+
+For sensitive values, use Secret Manager and attach them to Cloud Run instead of plain env vars.
+
+Example:
+
+```bash
+gcloud run services update mood-mirror-backend \
+	--region us-central1 \
+	--update-secrets OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest,GROQ_API_KEY=GROQ_API_KEY:latest,RIME_API_KEY=RIME_API_KEY:latest,LIVEKIT_API_KEY=LIVEKIT_API_KEY:latest,LIVEKIT_API_SECRET=LIVEKIT_API_SECRET:latest,IMAGE_API_BEARER_TOKEN=IMAGE_API_BEARER_TOKEN:latest
+```
 
 ## Ports and Networking
 

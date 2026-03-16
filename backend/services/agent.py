@@ -94,10 +94,8 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             model="whisper-large-v3-turbo",
             language=language,
         ),
-        llm=openai.LLM.with_openrouter(
-            model="nvidia/nemotron-3-super-120b-a12b:free",
-            site_url=os.environ.get("OPENROUTER_APP_URL", "https://mood-mirror.app"),
-            app_name=os.environ.get("OPENROUTER_APP_NAME", "Mood Mirror"),
+        llm=openai.LLM.with_cerebras(
+            model=os.environ.get("CEREBRAS_MODEL", "llama-3.3-70b"),
         ),
         tts=rime.TTS(
             model="arcana",

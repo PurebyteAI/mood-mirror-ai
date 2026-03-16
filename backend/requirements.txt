@@ -22,7 +22,7 @@ groq
 
 # LiveKit voice AI (Talk tab)
 livekit~=1.0
-livekit-agents[openai,silero,rime]~=1.2
+livekit-agents[openai,silero,rime]~=1.4
 
 # Payments (reserved for future use)
 stripe>=5.0.0
