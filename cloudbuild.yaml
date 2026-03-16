@@ -26,8 +26,8 @@ steps:
       - --allow-unauthenticated
       - --port
       - '8080'
-      - --set-env-vars
-      - BACKEND_HOST=0.0.0.0,BACKEND_PORT=8080,BACKEND_RELOAD=false,SQLITE_DB_PATH=/tmp/mood_mirror.db
+      - --update-env-vars
+      - ^|^BACKEND_HOST=0.0.0.0|BACKEND_PORT=8080|BACKEND_RELOAD=false|SQLITE_DB_PATH=${_SQLITE_DB_PATH}|CORS_ORIGINS=${_CORS_ORIGINS}
 
 images:
   - gcr.io/$PROJECT_ID/${_IMAGE_NAME}
@@ -36,3 +36,5 @@ substitutions:
   _IMAGE_NAME: backend
   _SERVICE_NAME: mood-mirror-backend
   _REGION: europe-west1
+  _SQLITE_DB_PATH: /tmp/mood_mirror.db
+  _CORS_ORIGINS: https://mood-mirror-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000

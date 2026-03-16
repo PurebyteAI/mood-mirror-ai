@@ -95,7 +95,7 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             language=language,
         ),
         llm=openai.LLM.with_cerebras(
-            model=os.environ.get("CEREBRAS_MODEL", "llama-3.3-70b"),
+            model=os.environ.get("CEREBRAS_MODEL", "Qwen-3-235B-Instruct-2507"),
         ),
         tts=rime.TTS(
             model="arcana",

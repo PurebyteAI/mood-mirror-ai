@@ -40,7 +40,7 @@ const MoodMirror = () => {
       const detail = err?.response?.data?.detail;
       const status = err?.response?.status;
       if (!err?.response) {
-        setAnalysisError("Cannot reach the backend server. Make sure it is running on port 8001.");
+        setAnalysisError("Cannot reach the backend server. Check the deployed backend URL and CORS configuration.");
       } else {
         setAnalysisError(detail || `Analysis failed (${status || "unknown error"}). Please try again.`);
       }
