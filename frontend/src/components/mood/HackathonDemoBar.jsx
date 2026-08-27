@@ -75,8 +75,8 @@ export const HackathonDemoBar = ({ onSelectScenario }) => {
             color: "#FFFFFF",
           }}
         >
-          <Sparkles size={13} className="text-violet-400 animate-pulse" />
-          <span>⚡ Hackathon Judge Demo Presets</span>
+          <Sparkles size={13} className="text-violet-400" />
+          <span>Demo Presets</span>
           <ChevronDown size={13} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
         </motion.button>
 
@@ -97,7 +97,7 @@ export const HackathonDemoBar = ({ onSelectScenario }) => {
             >
               <div className="flex items-center justify-between px-2 pb-1 border-b border-white/10">
                 <span className="text-[11px] font-mono font-semibold uppercase text-violet-300">
-                  Select Judge Demo Scenario
+                  Select Demo Scenario
                 </span>
                 <span className="text-[10px] text-white/40 font-mono">1-Click Live AI Run</span>
               </div>
