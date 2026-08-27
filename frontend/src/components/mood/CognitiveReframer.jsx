@@ -16,8 +16,9 @@ export const CognitiveReframer = ({ cognitiveData }) => {
 
   return (
     <div
+      id="cognitive-reframer-section"
       data-testid="cognitive-reframer-card"
-      className="rounded-3xl p-5 sm:p-6 backdrop-blur-2xl transition-all space-y-4"
+      className="rounded-3xl p-5 sm:p-6 backdrop-blur-2xl transition-all space-y-4 scroll-mt-6"
       style={{
         background: "linear-gradient(160deg, rgba(17, 29, 57, 0.75) 0%, rgba(7, 17, 38, 0.95) 100%)",
         border: "1px solid rgba(102, 183, 255, 0.25)",

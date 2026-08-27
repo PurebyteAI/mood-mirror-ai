@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wind, Compass, Sparkles, Palette, MessageSquare, ArrowRight, Check, HelpCircle } from "lucide-react";
+import { Wind, Compass, Sparkles, Palette, MessageSquare, ArrowRight, Check, Brain } from "lucide-react";
 import { BreathingModal } from "@/components/mood/BreathingModal";
 
 export const NextStepPanel = ({
@@ -14,6 +14,7 @@ export const NextStepPanel = ({
   const [inquiryText, setInquiryText] = useState("");
   const [inquirySaved, setInquirySaved] = useState(false);
   const [breathingModalOpen, setBreathingModalOpen] = useState(false);
+  const inputRef = useRef(null);
 
   const handleInquirySubmit = (e) => {
     e.preventDefault();
@@ -24,6 +25,21 @@ export const NextStepPanel = ({
       setActiveInquiry(false);
       setInquiryText("");
     }, 2000);
+  };
+
+  const handleToggleInquiry = () => {
+    const nextState = !activeInquiry;
+    setActiveInquiry(nextState);
+    if (nextState) {
+      setTimeout(() => inputRef.current?.focus(), 150);
+    }
+  };
+
+  const handleScrollToReframer = () => {
+    const el = document.getElementById("cognitive-reframer-section");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   };
 
   const steps = [
@@ -47,7 +63,18 @@ export const NextStepPanel = ({
       gradient: "from-violet-500/20 to-purple-500/20",
       border: "border-violet-500/30",
       accent: "text-violet-300",
-      action: () => setActiveInquiry(!activeInquiry),
+      action: handleToggleInquiry,
+    },
+    {
+      id: "reframe",
+      icon: Brain,
+      badge: "Reframe",
+      title: "Shift perspective",
+      desc: "Compassionate inquiry to reshape cognitive distortion.",
+      gradient: "from-purple-500/20 to-indigo-500/20",
+      border: "border-purple-500/30",
+      accent: "text-purple-300",
+      action: handleScrollToReframer,
     },
     {
       id: "create",
@@ -58,7 +85,7 @@ export const NextStepPanel = ({
       gradient: "from-pink-500/20 to-rose-500/20",
       border: "border-pink-500/30",
       accent: "text-pink-300",
-      action: () => onNavigateMode && onNavigateMode("drawing"),
+      action: () => onNavigateMode && onNavigateMode("draw"),
     },
     {
       id: "talk",
@@ -97,8 +124,8 @@ export const NextStepPanel = ({
           </p>
         </div>
 
-        {/* 4 Action Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* 5 Action Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {steps.map((step) => {
             const Icon = step.icon;
             return (
@@ -107,7 +134,7 @@ export const NextStepPanel = ({
                 whileHover={{ y: -3, scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={step.action}
-                className={`text-left p-4 rounded-2xl bg-gradient-to-br ${step.gradient} border ${step.border} transition-all duration-200 flex flex-col justify-between group`}
+                className={`text-left p-4 rounded-2xl bg-gradient-to-br ${step.gradient} border ${step.border} transition-all duration-200 flex flex-col justify-between group cursor-pointer`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -119,7 +146,7 @@ export const NextStepPanel = ({
                   <h5 className="font-display text-sm font-bold text-white mb-1">
                     {step.title}
                   </h5>
-                  <p className="text-[11px] text-white/60 leading-relaxed">
+                  <p className="text-[11px] text-white/60 leading-relaxed line-clamp-2">
                     {step.desc}
                   </p>
                 </div>
@@ -148,6 +175,7 @@ export const NextStepPanel = ({
               </label>
               <div className="flex gap-2">
                 <input
+                  ref={inputRef}
                   type="text"
                   value={inquiryText}
                   onChange={(e) => setInquiryText(e.target.value)}
@@ -163,7 +191,7 @@ export const NextStepPanel = ({
                 </button>
               </div>
               {inquirySaved && (
-                <p className="text-[11px] text-emerald-300 mt-2">
+                <p className="text-[11px] text-emerald-300 mt-2 font-medium">
                   ✓ Recorded into your private reflective stream.
                 </p>
               )}
