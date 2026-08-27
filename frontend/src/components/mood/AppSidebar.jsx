@@ -36,7 +36,7 @@ export const AppSidebar = ({ currentView, onNav, onExit, t, mood, historyCount =
   return (
     <>
       <aside
-        className="hidden xl:flex flex-col w-[250px] shrink-0 h-screen sticky top-0 py-5 px-4 z-20 select-none transition-colors duration-300"
+        className="hidden xl:flex flex-col w-[250px] shrink-0 h-screen sticky top-0 py-5 px-4 z-20 select-none transition-colors duration-300 overflow-y-auto overflow-x-hidden"
         style={{
           background: "var(--sidebar-bg)",
           borderRight: "1px solid var(--sidebar-border)",

@@ -95,7 +95,7 @@ export const MoodResult = ({
   };
 
   return (
-    <div data-testid="mood-result" className="w-full space-y-6 max-w-6xl mx-auto">
+    <div data-testid="mood-result" className="w-full space-y-6 max-w-6xl mx-auto pb-12">
       {/* Top Header Breadcrumb & Actions Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -146,21 +146,12 @@ export const MoodResult = ({
         </div>
       </div>
 
-      {/* Main 2-Column Responsive Layout */}
+      {/* Main 2-Column Responsive Symmetrical Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left / Center Column (7 of 12 cols): Visuals, Contradiction Notice & Poetic Reflection */}
+        {/* Left Column (7 of 12 cols): Visuals, Poetic Reflection & Cognitive Reframing */}
         <div className="lg:col-span-7 space-y-6">
           {/* Feature 03: Living Emotional Tapestry Generative Art */}
           <LivingTapestryCard analysis={analysis} language={language} />
-
-          {/* Feature 02: Emotional Contradiction Detector */}
-          {analysis?.alignment && (
-            <ContradictionDetector
-              alignment={analysis.alignment}
-              dominantMood={analysis.dominant_mood}
-              t={t}
-            />
-          )}
 
           {/* AI Poetic Reflection Text Card */}
           <div
@@ -211,8 +202,17 @@ export const MoodResult = ({
           )}
         </div>
 
-        {/* Right Column (5 of 12 cols): Emotions Biomarkers, 2D Affect Zone & Journal Vault */}
-        <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-6">
+        {/* Right Column (5 of 12 cols): Contradiction Detector, Emotions Spectrum, Affect Zone & Journal Vault */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Feature 02: Emotional Contradiction Detector */}
+          {analysis?.alignment && (
+            <ContradictionDetector
+              alignment={analysis.alignment}
+              dominantMood={analysis.dominant_mood}
+              t={t}
+            />
+          )}
+
           {/* Emotions Spectrum & Scores */}
           <div
             className="rounded-3xl p-5 sm:p-6 backdrop-blur-2xl border border-white/10 shadow-2xl space-y-4"
@@ -353,7 +353,7 @@ export const MoodResult = ({
         </div>
       </div>
 
-      {/* Feature 05: Next-Step Action Deck ("What do you need right now?") */}
+      {/* Feature 05: Next-Step Action Deck ("What do you need right now?") Spanning full width */}
       <NextStepPanel
         dominantMood={analysis.dominant_mood}
         onOpenBreathing={onOpenBreathing}
