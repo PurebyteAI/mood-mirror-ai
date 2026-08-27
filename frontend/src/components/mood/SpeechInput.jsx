@@ -1,86 +1,81 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Mic, MicOff, Send, Loader2 } from "lucide-react";
+import { Mic, MicOff, Loader2, Sparkles, User, Heart, Clock, ShieldCheck, ArrowRight } from "lucide-react";
 import axios from "axios";
 import { API_BASE } from "@/lib/api";
 
-const WaveformCanvas = ({ analyserRef, isRecording }) => {
+const ReactiveWaveform = ({ isRecording, analyserRef }) => {
   const canvasRef = useRef(null);
   const animFrameRef = useRef(null);
 
-  const drawWaveform = useCallback(() => {
+  useEffect(() => {
     const canvas = canvasRef.current;
-    const analyser = analyserRef.current;
-    if (!canvas || !analyser) return;
+    if (!canvas) return undefined;
     const ctx = canvas.getContext("2d");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * 2;
-    canvas.height = rect.height * 2;
-    ctx.scale(2, 2);
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+    if (rect.width <= 0 || rect.height <= 0) return undefined;
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    let t = 0;
     const draw = () => {
       animFrameRef.current = requestAnimationFrame(draw);
-      analyser.getByteTimeDomainData(dataArray);
-      ctx.fillStyle = "var(--bg-surface-soft)";
-      ctx.fillRect(0, 0, rect.width, rect.height);
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#F87171";
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = "#F87171";
-      ctx.beginPath();
-      const sliceWidth = rect.width / bufferLength;
-      let x = 0;
-      for (let i = 0; i < bufferLength; i++) {
-        const v = dataArray[i] / 128.0;
-        const y = (v * rect.height) / 2;
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        x += sliceWidth;
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      const barCount = 48;
+      const barWidth = 3;
+      const gap = (rect.width - barCount * barWidth) / (barCount - 1);
+      const centerY = rect.height / 2;
+
+      let freqData = new Uint8Array(32);
+      if (analyserRef.current && isRecording) {
+        analyserRef.current.getByteFrequencyData(freqData);
       }
-      ctx.lineTo(rect.width, rect.height / 2);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      analyser.getByteFrequencyData(dataArray);
-      const barCount = 32;
-      const barWidth = rect.width / barCount;
-      const step = Math.floor(bufferLength / barCount);
-      for (let i = 0; i < barCount; i++) {
-        const value = dataArray[i * step];
-        const barHeight = (value / 255) * rect.height * 0.6;
-        const hue = (value / 255) * 60 + 340;
-        ctx.fillStyle = `hsla(${hue}, 80%, 60%, 0.4)`;
-        ctx.fillRect(i * barWidth + 1, rect.height - barHeight, barWidth - 2, barHeight);
+
+      for (let i = 0; i < barCount; i += 1) {
+        const distFromCenter = Math.abs(i - barCount / 2) / (barCount / 2);
+        const curve = Math.cos(distFromCenter * Math.PI * 0.5);
+
+        let height = 4;
+        if (isRecording) {
+          const freqIndex = Math.min(freqData.length - 1, Math.floor((i / barCount) * freqData.length));
+          const amp = freqData[freqIndex] / 255;
+          const wave = Math.sin(t * 8 + i * 0.4) * 0.3 + 0.7;
+          height = Math.max(4, (amp * 50 + wave * 14) * curve);
+        } else {
+          height = Math.max(3, (Math.sin(t * 2 + i * 0.2) * 3 + 4) * curve);
+        }
+
+        const x = i * (barWidth + gap);
+        const gradient = ctx.createLinearGradient(0, centerY - height, 0, centerY + height);
+        gradient.addColorStop(0, "#C084FC");
+        gradient.addColorStop(0.5, "#60A5FA");
+        gradient.addColorStop(1, "#34D399");
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(x, centerY - height, barWidth, height * 2, 2);
+        } else {
+          ctx.rect(x, centerY - height, barWidth, height * 2);
+        }
+        ctx.fill();
       }
+
+      t += 0.04;
     };
+
     draw();
-  }, [analyserRef]);
 
-  useEffect(() => {
-    if (isRecording) drawWaveform();
-    return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); };
-  }, [isRecording, drawWaveform]);
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [isRecording, analyserRef]);
 
-  useEffect(() => {
-    if (!isRecording) {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * 2;
-      canvas.height = rect.height * 2;
-      ctx.scale(2, 2);
-      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--wave-bg").trim() || "#0A0A0A";
-      ctx.fillRect(0, 0, rect.width, rect.height);
-      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--divider-subtle").trim() || "rgba(255,255,255,0.08)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, rect.height / 2);
-      ctx.lineTo(rect.width, rect.height / 2);
-      ctx.stroke();
-    }
-  }, [isRecording]);
-
-  return <canvas ref={canvasRef} data-testid="waveform-canvas" className="w-full rounded-lg" style={{ height: "80px", background: "var(--wave-bg)" }} />;
+  return <canvas ref={canvasRef} className="w-full h-24 block" />;
 };
 
 export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
@@ -88,19 +83,44 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState("");
+  const [seconds, setSeconds] = useState(0);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const analyserRef = useRef(null);
   const audioContextRef = useRef(null);
   const streamRef = useRef(null);
+  const timerRef = useRef(null);
 
-  // Cleanup on unmount
-  useEffect(() => () => stopAudio(), []);
+  useEffect(() => {
+    if (isRecording) {
+      setSeconds(0);
+      timerRef.current = setInterval(() => {
+        setSeconds((s) => s + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isRecording]);
+
+  const formatTimer = (sec) => {
+    const mins = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(mins).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  };
 
   const stopAudio = () => {
-    if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
-    if (audioContextRef.current) { audioContextRef.current.close().catch(() => {}); audioContextRef.current = null; }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((trk) => trk.stop());
+      streamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
     analyserRef.current = null;
   };
 
@@ -125,7 +145,6 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
 
   const toggleRecording = async () => {
     if (isRecording) {
-      // Stop recording — MediaRecorder.onstop will fire and transcribe
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
       }
@@ -141,7 +160,6 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // Set up waveform analyser
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       audioContextRef.current = audioContext;
       const source = audioContext.createMediaStreamSource(stream);
@@ -150,7 +168,6 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
       source.connect(analyser);
       analyserRef.current = analyser;
 
-      // Determine best supported MIME type
       const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/ogg"]
         .find((m) => MediaRecorder.isTypeSupported(m)) || "";
 
@@ -167,7 +184,7 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
         transcribeBlob(blob);
       };
 
-      recorder.start(100); // collect data every 100ms
+      recorder.start(100);
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
     } catch (err) {
@@ -184,65 +201,275 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
   const isBusy = isAnalyzing || isTranscribing;
 
   return (
-    <div className="glass-card p-6 md:p-8" data-testid="speech-input-section">
-      <div className="mb-6 rounded-lg overflow-hidden" style={{ border: "1px solid var(--divider-subtle)" }}>
-        <WaveformCanvas analyserRef={analyserRef} isRecording={isRecording} />
-      </div>
-
-      <div className="flex flex-col items-center py-4">
-        <div className="relative">
-          {isRecording && (
-            <>
-              <div className="absolute inset-0 rounded-full animate-pulse-ring" style={{ background: "rgba(248, 113, 113, 0.3)", transform: "scale(1.5)" }} />
-              <div className="absolute inset-0 rounded-full animate-pulse-ring" style={{ background: "rgba(248, 113, 113, 0.15)", transform: "scale(2)", animationDelay: "0.3s" }} />
-            </>
-          )}
-          <motion.button
-            data-testid="record-btn" onClick={toggleRecording} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            className="relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300"
-            style={{
-              background: isRecording ? "linear-gradient(135deg, #F87171 0%, #EF4444 100%)" : "var(--control-bg)",
-              border: isRecording ? "2px solid rgba(248,113,113,0.5)" : "2px solid var(--control-border)",
-              boxShadow: isRecording ? "0 0 40px rgba(248,113,113,0.4)" : "none",
-            }}
-            disabled={isBusy && !isRecording}
+    <div className="space-y-6 w-full" data-testid="speech-input-section">
+      {/* Main Glass Voice Card */}
+      <div
+        className="relative rounded-3xl p-6 md:p-8 transition-all duration-300"
+        style={{
+          background: "var(--card-glass-bg)",
+          border: "1px solid var(--card-glass-border)",
+          backdropFilter: "blur(24px)",
+          boxShadow: "var(--card-glass-shadow)",
+        }}
+      >
+        {/* Title & Guidance */}
+        <div className="text-center mb-6">
+          <h3
+            className="font-display text-xl md:text-2xl font-medium mb-1"
+            style={{ color: "var(--text-primary)" }}
           >
-            {isRecording
-              ? <MicOff size={28} strokeWidth={1.5} color="var(--gradient-button-text)" />
-              : isTranscribing
-                ? <Loader2 size={28} strokeWidth={1.5} className="animate-spin" style={{ color: "var(--text-secondary)" }} />
-                : <Mic size={28} strokeWidth={1.5} style={{ color: "var(--text-secondary)" }} />}
+            {isRecording ? "I'm listening..." : isTranscribing ? "Transcribing speech..." : "Speak from your heart"}
+          </h3>
+          <p className="text-xs md:text-sm font-light" style={{ color: "var(--text-muted)" }}>
+            There's no right or wrong here. Express how you feel.
+          </p>
+        </div>
+
+        {/* Central Audio Waveform & Mic Button */}
+        <div className="relative flex flex-col items-center justify-center my-4 py-4">
+          <div className="w-full max-w-md px-4">
+            <ReactiveWaveform isRecording={isRecording} analyserRef={analyserRef} />
+          </div>
+
+          {/* Central Pulsing Mic Button */}
+          <div className="relative mt-2 flex flex-col items-center">
+            {isRecording && (
+              <>
+                <div
+                  className="absolute inset-0 rounded-full animate-pulse-ring"
+                  style={{ background: "rgba(155, 108, 255, 0.35)", transform: "scale(1.4)" }}
+                />
+                <div
+                  className="absolute inset-0 rounded-full animate-pulse-ring"
+                  style={{ background: "rgba(96, 165, 250, 0.2)", transform: "scale(1.8)", animationDelay: "0.4s" }}
+                />
+              </>
+            )}
+
+            <motion.button
+              data-testid="record-btn"
+              onClick={toggleRecording}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.95 }}
+              className="relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 z-10"
+              style={{
+                background: isRecording
+                  ? "radial-gradient(circle, #EC4899 0%, #8B5CF6 100%)"
+                  : "linear-gradient(135deg, rgba(155, 108, 255, 0.25), rgba(101, 120, 255, 0.15))",
+                border: isRecording ? "2px solid rgba(255, 255, 255, 0.6)" : "1.5px solid rgba(155, 108, 255, 0.4)",
+                boxShadow: isRecording
+                  ? "0 0 50px rgba(236, 72, 153, 0.6), 0 0 30px rgba(139, 92, 246, 0.4)"
+                  : "0 0 24px rgba(155, 108, 255, 0.2)",
+              }}
+              disabled={isBusy && !isRecording}
+            >
+              {isRecording ? (
+                <MicOff size={28} className="text-white" />
+              ) : isTranscribing ? (
+                <Loader2 size={28} className="animate-spin text-violet-500 dark:text-violet-300" />
+              ) : (
+                <Mic size={28} className="text-violet-500 dark:text-violet-300" />
+              )}
+            </motion.button>
+
+            {/* Timer Readout */}
+            <div className="mt-3 text-center">
+              <span
+                className="font-mono text-sm font-semibold tracking-wider"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {formatTimer(seconds)}
+              </span>
+              <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                {isRecording ? "Tap to stop" : isTranscribing ? "Processing..." : "Tap to speak"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="p-3 rounded-xl mb-4 bg-red-500/10 border border-red-500/20 text-center text-xs text-red-500">
+            {error}
+          </div>
+        )}
+
+        {/* Live Transcript / Result Text Area */}
+        {transcript && (
+          <div
+            className="mt-4 p-4 rounded-2xl"
+            style={{
+              background: "var(--control-bg)",
+              border: "1px solid var(--border-subtle)",
+            }}
+          >
+            <p className="text-xs text-violet-500 dark:text-violet-400 font-semibold mb-1">Transcribed words:</p>
+            <p
+              data-testid="speech-transcript"
+              className="text-sm md:text-base font-light italic"
+              style={{ color: "var(--text-primary)" }}
+            >
+              "{transcript}"
+            </p>
+          </div>
+        )}
+
+        {/* 3 Guidance Pills */}
+        <div
+          className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 my-6 pt-4"
+          style={{ borderTop: "1px solid var(--divider-subtle)" }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-xl"
+            style={{
+              background: "var(--control-bg)",
+              border: "1px solid var(--border-subtle)",
+            }}
+          >
+            <User size={13} className="text-violet-500 dark:text-violet-400 shrink-0" />
+            <div>
+              <p className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>Speak naturally</p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>No need to be perfect</p>
+            </div>
+          </div>
+
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-xl"
+            style={{
+              background: "var(--control-bg)",
+              border: "1px solid var(--border-subtle)",
+            }}
+          >
+            <Heart size={13} className="text-pink-500 dark:text-pink-400 shrink-0" />
+            <div>
+              <p className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>We're here for you</p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Safe. Private. Non-judgmental.</p>
+            </div>
+          </div>
+
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-xl"
+            style={{
+              background: "var(--control-bg)",
+              border: "1px solid var(--border-subtle)",
+            }}
+          >
+            <Clock size={13} className="text-blue-500 dark:text-blue-400 shrink-0" />
+            <div>
+              <p className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>Take your time</p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>There's no rush</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Submission Action Bar */}
+        <div
+          className="flex items-center justify-between pt-4"
+          style={{ borderTop: "1px solid var(--divider-subtle)" }}
+        >
+          <p
+            className="text-xs font-light hidden sm:block"
+            style={{ color: "var(--text-muted)" }}
+          >
+            {transcript ? `${transcript.split(" ").length} words recorded` : "Press Enter to submit"}
+          </p>
+
+          <motion.button
+            data-testid="analyze-speech-btn"
+            onClick={handleSubmit}
+            disabled={!transcript.trim() || isBusy}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="btn-mirror-me ml-auto flex items-center gap-2.5 px-8 py-3.5 rounded-full text-sm font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>{t("analyzing")}</span>
+              </>
+            ) : (
+              <>
+                <span>{t("mirrorMe")}</span>
+                <Sparkles size={15} />
+              </>
+            )}
           </motion.button>
         </div>
-        <p className="mt-4 text-sm font-mono" style={{ color: isRecording ? "#F87171" : "var(--text-muted)" }} data-testid="recording-status">
-          {isRecording ? (t("listening") || "Listening…") : isTranscribing ? (t("transcribing") || "Transcribing…") : (t("tapToSpeak") || "Tap to speak")}
-        </p>
       </div>
 
-      {error && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-4 rounded-xl" style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
-          <p className="text-sm" style={{ color: "#F87171" }}>{error}</p>
-        </motion.div>
-      )}
-
-      {transcript && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-4 rounded-xl" style={{ background: "var(--bg-surface-soft)", border: "1px solid var(--divider-subtle)" }}>
-          <p data-testid="speech-transcript" className="text-lg font-light leading-relaxed italic" style={{ color: "var(--text-primary)" }}>"{transcript}"</p>
-        </motion.div>
-      )}
-
-      <div className="flex items-center justify-between pt-4" style={{ borderTop: "1px solid var(--divider-subtle)" }}>
-        <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-          {transcript ? `${transcript.split(" ").length} ${t("wordsCaptured") || "words captured"}` : t("expressVoice") || "Express yourself with your voice"}
-        </p>
-        <motion.button
-          data-testid="analyze-speech-btn" onClick={handleSubmit} disabled={!transcript.trim() || isBusy}
-          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{ background: "var(--gradient-primary)", color: "var(--gradient-button-text)" }}
+      {/* Bottom Info Bar: "How it works" + "Your safe space" */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-4 items-stretch">
+        <div
+          className="p-4 rounded-2xl flex flex-col justify-between"
+          style={{
+            background: "var(--card-glass-bg)",
+            border: "1px solid var(--card-glass-border)",
+            boxShadow: "var(--card-glass-shadow)",
+          }}
         >
-          {isAnalyzing ? (<><Loader2 size={16} strokeWidth={1.5} className="animate-spin" />{t("analyzing") || "Analyzing…"}</>) : (<><Send size={16} strokeWidth={1.5} />{t("mirrorMe") || "Mirror Me"}</>)}
-        </motion.button>
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={13} className="text-violet-500 dark:text-violet-400" />
+            <span
+              className="text-xs font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              How it works
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 text-left">
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-violet-500 dark:text-violet-300">1. Express</span>
+              <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                Speak freely about what's in your heart.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-blue-500 dark:text-blue-300">2. Reflect</span>
+              <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                I analyze your words, tone & emotions.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-pink-500 dark:text-pink-300">3. Understand</span>
+              <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                Gain insights and clarity about yourself.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="p-4 rounded-2xl flex flex-col justify-between"
+          style={{
+            background: "var(--card-glass-bg)",
+            border: "1px solid var(--card-glass-border)",
+            boxShadow: "var(--card-glass-shadow)",
+          }}
+        >
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" />
+              <span
+                className="text-xs font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Your safe space
+              </span>
+            </div>
+            <p
+              className="text-[11px] leading-relaxed"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Everything you share is private, secure, and never shared.
+            </p>
+          </div>
+          <div className="mt-2">
+            <span className="text-[10px] font-medium text-violet-500 dark:text-violet-400 hover:underline flex items-center gap-1 cursor-pointer">
+              Learn more <ArrowRight size={10} />
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

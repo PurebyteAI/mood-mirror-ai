@@ -25,17 +25,13 @@ services:
       - key: CORS_ORIGINS
         value: https://mood-mirror-frontend.onrender.com
 
-      # ── OpenRouter (AI analysis) ─────────────────────────────────────
-      - key: OPENROUTER_API_KEY
-        sync: false          # Set this in the Render dashboard
-      - key: OPENROUTER_MODEL
-        value: nvidia/nemotron-3-super-120b-a12b:free
-      - key: OPENROUTER_BASE_URL
-        value: https://openrouter.ai/api/v1
-
-      # ── Groq (speech-to-text) ────────────────────────────────────────
+      # ── Groq (AI analysis + speech-to-text) ──────────────────────────
       - key: GROQ_API_KEY
-        sync: false
+        sync: false          # Set this in the Render dashboard
+      - key: GROQ_MODEL
+        value: qwen/qwen3.8-27b
+      - key: GROQ_BASE_URL
+        value: https://api.groq.com/openai/v1
 
       # ── Rime TTS ─────────────────────────────────────────────────────
       - key: RIME_API_KEY

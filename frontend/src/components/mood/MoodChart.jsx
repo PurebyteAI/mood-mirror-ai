@@ -60,7 +60,7 @@ export const MoodChart = ({ emotions, t }) => {
                 }}
               />
             </div>
-            <span className="text-xs font-mono w-10" style={{ color }}>{pct}%</span>
+            <span className="sr-only">{pct}%</span>
           </motion.div>
         );
       })}

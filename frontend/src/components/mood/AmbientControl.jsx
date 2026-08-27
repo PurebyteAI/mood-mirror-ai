@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX } from "lucide-react";
 import ambientEngine from "@/ambientMusic";
 
-export const AmbientControl = ({ mood, label }) => {
+export const AmbientControl = ({ mood, label, variant = "fab" }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(15);
   const [showSlider, setShowSlider] = useState(false);
@@ -36,10 +36,40 @@ export const AmbientControl = ({ mood, label }) => {
     ambientEngine.setVolume(v / 100);
   }, []);
 
+  if (variant === "inline") {
+    return (
+      <div className="flex items-center gap-3">
+        <motion.button
+          onClick={togglePlay}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-11 h-11 rounded-full flex items-center justify-center"
+          style={{
+            background: isPlaying ? "rgba(155,108,255,0.22)" : "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.14)",
+            color: isPlaying ? "#C4B5FD" : "var(--text-primary)",
+          }}
+          aria-label={label}
+        >
+          {isPlaying ? <Volume2 size={18} strokeWidth={1.5} /> : <VolumeX size={18} strokeWidth={1.5} />}
+        </motion.button>
+        <input
+          type="range"
+          min="0"
+          max="40"
+          value={volume}
+          onChange={handleVolume}
+          className="w-20"
+          style={{ accentColor: "#9B6CFF" }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       data-testid="ambient-control"
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2"
+      className="fixed bottom-20 xl:bottom-6 right-6 z-50 flex items-center gap-2"
     >
       <AnimatePresence>
         {showSlider && (

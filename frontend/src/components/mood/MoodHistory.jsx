@@ -1,78 +1,123 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Pen, Brush, Mic, Clock } from "lucide-react";
-import { useTheme } from "next-themes";
-
-const MOOD_COLORS_DARK = {
-  happiness: "#FCD34D", happy: "#FCD34D",
-  sadness: "#60A5FA", sad: "#60A5FA",
-  anger: "#F87171", angry: "#F87171",
-  calmness: "#34D399", calm: "#34D399",
-  stress: "#F97316", stressed: "#F97316",
-  curiosity: "#C084FC", curious: "#C084FC",
-};
-
-const MOOD_COLORS_LIGHT = {
-  happiness: "#d4a840", happy: "#d4a840",
-  sadness: "#6898d0", sad: "#6898d0",
-  anger: "#c86858", angry: "#c86858",
-  calmness: "#5aaa78", calm: "#5aaa78",
-  stress: "#c87840", stressed: "#c87840",
-  curiosity: "#9870c0", curious: "#9870c0",
-};
+import { Pen, Brush, Mic, Clock, Sparkles } from "lucide-react";
 
 const TYPE_ICONS = { text: Pen, drawing: Brush, speech: Mic };
 
 export const MoodHistory = ({ history, t }) => {
-  const { resolvedTheme } = useTheme();
-  const MOOD_COLORS = resolvedTheme === "light" ? MOOD_COLORS_LIGHT : MOOD_COLORS_DARK;
-
   if (!history || history.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24" data-testid="empty-history">
-        <Clock size={48} strokeWidth={1} className="mb-4" style={{ color: "var(--text-muted)" }} />
-        <p className="text-lg font-light" style={{ color: "var(--text-secondary)" }}>{t("noHistory")}</p>
-        <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{t("historyHint")}</p>
+      <div className="flex flex-col items-center justify-center py-24 text-center" data-testid="empty-history">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/[0.04] border border-white/[0.08] mb-4">
+          <Clock size={28} className="text-white/40" />
+        </div>
+        <p className="text-lg font-medium text-white/80">{t("noHistory")}</p>
+        <p className="text-xs text-white/40 mt-1 max-w-sm">{t("historyHint")}</p>
       </div>
     );
   }
 
-  return (
-    <div data-testid="mood-history">
-      <h2 className="font-display text-2xl font-bold mb-8" style={{ color: "var(--text-primary)" }}>{t("yourReflections")}</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {history.map((item, i) => {
-          const color = MOOD_COLORS[item.dominant_mood?.toLowerCase()] || "#C084FC";
-          const Icon = TYPE_ICONS[item.input_type] || Pen;
-          const timeStr = item.timestamp
-            ? new Date(item.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
-            : "";
+  // Group by date (Today, Yesterday, or Date string)
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
 
-          return (
-            <motion.div
-              key={item.id || i}
-              data-testid={`history-item-${i}`}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="glass-card p-5 transition-all duration-300"
-              style={{ borderLeft: `3px solid ${color}` }}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Icon size={14} strokeWidth={1.5} style={{ color: "var(--text-muted)" }} />
-                  <span className="text-xs font-mono uppercase" style={{ color }}>{t(item.dominant_mood?.toLowerCase()) || item.dominant_mood}</span>
-                </div>
-                <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>{timeStr}</span>
-              </div>
-              <p className="text-sm font-light leading-relaxed line-clamp-3" style={{ color: "var(--text-secondary)" }}>{item.response_text}</p>
-              {item.input_preview && item.input_type !== "drawing" && (
-                <p className="text-xs mt-3 italic opacity-40" style={{ color: "var(--text-muted)" }}>"{item.input_preview}"</p>
-              )}
-            </motion.div>
-          );
-        })}
+  const grouped = history.reduce((acc, item) => {
+    const itemDate = item.timestamp ? new Date(item.timestamp).toDateString() : "Previous";
+    let groupKey = itemDate;
+    if (itemDate === today) groupKey = "Today";
+    else if (itemDate === yesterday) groupKey = "Yesterday";
+    else {
+      groupKey = new Date(item.timestamp).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+      });
+    }
+
+    if (!acc[groupKey]) acc[groupKey] = [];
+    acc[groupKey].push(item);
+    return acc;
+  }, {});
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 pb-12" data-testid="mood-history">
+      {/* Title */}
+      <div>
+        <h2 className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight">
+          {t("yourReflections")}
+        </h2>
+        <p className="text-sm text-white/60 mt-1">
+          A gentle chronological timeline of your moments of self-expression.
+        </p>
       </div>
+
+      {/* Timeline Groups */}
+      {Object.entries(grouped).map(([groupName, items], gIdx) => (
+        <div key={groupName} className="space-y-4">
+          {/* Section Date Header */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-violet-400">
+              {groupName}
+            </span>
+            <div className="flex-1 h-[1px] bg-white/[0.08]" />
+          </div>
+
+          {/* Timeline Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {items.map((item, i) => {
+              const Icon = TYPE_ICONS[item.input_type] || Pen;
+              const timeStr = item.timestamp
+                ? new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                : "";
+
+              return (
+                <motion.div
+                  key={item.id || `${gIdx}-${i}`}
+                  data-testid={`history-item-${i}`}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  className="p-5 rounded-3xl border border-white/[0.08] relative group"
+                  style={{
+                    background: "linear-gradient(160deg, rgba(12, 23, 48, 0.8), rgba(7, 17, 38, 0.95))",
+                    boxShadow: "0 4px 24px rgba(0, 0, 0, 0.25)",
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="px-3 py-1 rounded-full text-xs font-semibold capitalize"
+                        style={{
+                          background: "rgba(155, 108, 255, 0.16)",
+                          color: "#D8B4FE",
+                          border: "1px solid rgba(155, 108, 255, 0.3)",
+                        }}
+                      >
+                        {t(item.dominant_mood?.toLowerCase()) || item.dominant_mood}
+                      </span>
+                      <span className="text-xs font-mono text-white/50">{timeStr}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-xs text-white/40">
+                      <Icon size={13} />
+                    </div>
+                  </div>
+
+                  <p className="font-display text-sm md:text-[15px] leading-relaxed text-white/90 mb-3">
+                    "{item.response_text}"
+                  </p>
+
+                  {item.input_preview && item.input_type !== "drawing" && (
+                    <p className="text-xs text-white/40 italic line-clamp-1 border-t border-white/[0.06] pt-2">
+                      Expressed: "{item.input_preview}"
+                    </p>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
+

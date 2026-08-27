@@ -41,7 +41,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         <div key={p.dataKey} style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
           <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: p.color }} />
           <span style={{ color: getThemeValue("--text-primary", "#EDEDED"), fontSize: "11px", fontFamily: "'Space Mono', monospace" }}>
-            {MOOD_CONFIG[p.dataKey]?.label}: {Math.round(p.value * 100)}%
+            {MOOD_CONFIG[p.dataKey]?.label}
           </span>
         </div>
       ))}
@@ -82,11 +82,11 @@ export const MoodTrendChart = ({ data }) => {
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: tickColor, fontSize: 10, fontFamily: "'Space Mono', monospace" }}
+            tick={false}
             axisLine={false}
             tickLine={false}
             domain={[0, 1]}
-            tickFormatter={(v) => `${Math.round(v * 100)}%`}
+            width={12}
           />
           <Tooltip content={<CustomTooltip />} />
           {Object.entries(MOOD_CONFIG).map(([key, cfg]) => (

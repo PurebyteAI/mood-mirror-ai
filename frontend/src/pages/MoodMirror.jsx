@@ -1,12 +1,18 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, X } from "lucide-react";
 import { MoodOrb } from "@/components/mood/MoodOrb";
 import { InputSection } from "@/components/mood/InputSection";
-import { MoodResult } from "@/components/mood/MoodResult";
+import { MoodResult, LiveReflectionPreview } from "@/components/mood/MoodResult";
 import { MoodHistory } from "@/components/mood/MoodHistory";
 import { Header } from "@/components/mood/Header";
-import { AmbientControl } from "@/components/mood/AmbientControl";
+import { AppSidebar, MobileNav } from "@/components/mood/AppSidebar";
+import { MirrorStage } from "@/components/mood/MirrorStage";
+import { PromptCarousel } from "@/components/mood/PromptCarousel";
+import { InsightsPage } from "@/components/mood/InsightsPage";
+import { SettingsPage } from "@/components/mood/SettingsPage";
+import LivingMuseum from "@/components/mood/LivingMuseum";
+import { BreathingModal } from "@/components/mood/BreathingModal";
 import JournalPage from "@/pages/JournalPage";
 import { useTranslation } from "@/i18n";
 import { API_BASE } from "@/lib/api";
@@ -20,34 +26,11 @@ const MoodMirror = () => {
   const [history, setHistory] = useState([]);
   const [language, setLanguage] = useState("en");
   const [analysisError, setAnalysisError] = useState("");
+  const [activeMode, setActiveMode] = useState("portal");
+  const [seedText, setSeedText] = useState("");
+  const [breathingOpen, setBreathingOpen] = useState(false);
 
   const { t } = useTranslation(language);
-
-  const analyzeMood = useCallback(async (inputType, content) => {
-    setIsAnalyzing(true);
-    setAnalysis(null);
-    setAnalysisError("");
-    try {
-      const res = await axios.post(`${API_BASE}/analyze`, {
-        input_type: inputType,
-        content: content,
-        language: language,
-      });
-      setAnalysis(res.data);
-      setDominantMood(res.data.dominant_mood);
-    } catch (err) {
-      console.error("Analysis failed:", err);
-      const detail = err?.response?.data?.detail;
-      const status = err?.response?.status;
-      if (!err?.response) {
-        setAnalysisError("Cannot reach the backend server. Check the deployed backend URL and CORS configuration.");
-      } else {
-        setAnalysisError(detail || `Analysis failed (${status || "unknown error"}). Please try again.`);
-      }
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, [language]);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -58,8 +41,56 @@ const MoodMirror = () => {
     }
   }, []);
 
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  const analyzeMood = useCallback(async (inputType, content, spokenText = null) => {
+    setIsAnalyzing(true);
+    setAnalysis(null);
+    setAnalysisError("");
+    try {
+      const res = await axios.post(`${API_BASE}/analyze`, {
+        input_type: inputType,
+        content: content,
+        spoken_text: spokenText,
+        language: language,
+        response_speed: "fast",
+      }, {
+        timeout: 30000,
+      });
+      setAnalysis(res.data);
+      setDominantMood(res.data.dominant_mood);
+      fetchHistory();
+    } catch (err) {
+      console.error("Analysis failed:", err);
+      if (!err?.response) {
+        setAnalysisError(t("networkErrorCalm"));
+      } else {
+        setAnalysisError(t("aiErrorCalm"));
+      }
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [language, t, fetchHistory]);
+
+  const handleSelectDemoScenario = useCallback((scenario) => {
+    analyzeMood(scenario.input_type, scenario.content);
+    setActiveMode("portal");
+  }, [analyzeMood]);
+
   const handleNav = useCallback((view) => {
     if (view === "history") fetchHistory();
+    if (view === "mirror") {
+      setActiveMode("portal");
+      setCurrentView("mirror");
+      return;
+    }
+    if (view === "talk") {
+      setActiveMode("talk");
+      setCurrentView("mirror");
+      return;
+    }
     setCurrentView(view);
   }, [fetchHistory]);
 
@@ -67,16 +98,30 @@ const MoodMirror = () => {
     setAnalysis(null);
     setDominantMood(null);
     setAnalysisError("");
+    setActiveMode("portal");
+    setCurrentView("mirror");
+  }, []);
+
+  const pickPrompt = useCallback((text) => {
+    setSeedText(text);
+    setActiveMode("text");
+    setCurrentView("mirror");
+  }, []);
+
+  const handleExitToLanding = useCallback(() => {
+    window.location.href = "/";
   }, []);
 
   return (
     <div
       data-testid="mood-mirror-app"
-      className="relative min-h-screen overflow-hidden theme-transition"
+      className="relative min-h-screen overflow-x-hidden theme-transition"
       style={{ background: "var(--bg-base)" }}
     >
+      {/* Background Mood Ambient Aura */}
       <MoodOrb mood={dominantMood} />
 
+      {/* Cosmic background gradient overlay */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -85,119 +130,234 @@ const MoodMirror = () => {
         }}
       />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 py-8 min-h-screen flex flex-col">
-        <Header
+      <div className="relative z-10 flex min-h-screen">
+        {/* Left Fixed Desktop Sidebar */}
+        <AppSidebar
           currentView={currentView}
           onNav={handleNav}
-          language={language}
-          onLanguageChange={setLanguage}
+          onExit={handleExitToLanding}
           t={t}
+          mood={dominantMood}
+          historyCount={history.length}
         />
 
-        <AnimatePresence mode="wait">
-          {currentView === "journal" ? (
-            <motion.div
-              key="journal"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4 }}
-              className="flex-1"
-            >
-              <JournalPage onBack={() => handleNav("mirror")} t={t} language={language} />
-            </motion.div>
-          ) : currentView === "history" ? (
-            <motion.div
-              key="history"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4 }}
-              className="flex-1"
-            >
-              <MoodHistory history={history} t={t} />
-            </motion.div>
-          ) : analysis ? (
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, filter: "blur(10px)" }}
-              animate={{ opacity: 1, filter: "blur(0px)" }}
-              exit={{ opacity: 0, filter: "blur(10px)" }}
-              transition={{ duration: 0.5 }}
-              className="flex-1 flex items-start justify-center pt-8"
-            >
-              <MoodResult analysis={analysis} onReset={resetMirror} t={t} language={language} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="input"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4 }}
-              className="flex-1 flex flex-col items-center justify-center"
-            >
-              <motion.div
-                className="text-center mb-12 max-w-2xl"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.6 }}
-              >
-                <h2
-                  data-testid="hero-title"
-                  className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {t("heroTitle")}
-                </h2>
-                <p
-                  data-testid="hero-subtitle"
-                  className="text-lg md:text-xl font-light leading-relaxed"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  {t("heroSubtitle")}
-                </p>
-              </motion.div>
+        {/* Main Application Content Container */}
+        <div className="flex-1 min-w-0 flex flex-col px-4 md:px-8 xl:px-10 pb-24 xl:pb-8">
+          {/* Top Bar with integrated Demo Presets */}
+          <Header
+            currentView={currentView}
+            onNav={handleNav}
+            onExit={handleExitToLanding}
+            language={language}
+            onLanguageChange={setLanguage}
+            t={t}
+            dominantMood={dominantMood}
+            onSelectScenario={handleSelectDemoScenario}
+          />
 
-              <InputSection
-                onAnalyze={analyzeMood}
-                isAnalyzing={isAnalyzing}
-                t={t}
-                language={language}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <AnimatePresence mode="wait">
+            {currentView === "museum" ? (
+              <motion.div
+                key="museum"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1 pt-2"
+              >
+                <LivingMuseum onStartReflection={() => handleNav("mirror")} t={t} />
+              </motion.div>
+            ) : currentView === "journal" ? (
+              <motion.div
+                key="journal"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1"
+              >
+                <JournalPage onBack={() => handleNav("mirror")} t={t} language={language} embedded />
+              </motion.div>
+            ) : currentView === "history" ? (
+              <motion.div
+                key="history"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1"
+              >
+                <MoodHistory history={history} t={t} />
+              </motion.div>
+            ) : currentView === "insights" ? (
+              <motion.div
+                key="insights"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1"
+              >
+                <InsightsPage t={t} onStart={() => handleNav("mirror")} />
+              </motion.div>
+            ) : currentView === "settings" ? (
+              <motion.div
+                key="settings"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1"
+              >
+                <SettingsPage t={t} language={language} onLanguageChange={setLanguage} />
+              </motion.div>
+            ) : analysis ? (
+              /* ========================================================================= */
+              /* Dedicated Cinematic Reflection View (Full Width Multi-Column Dashboard)   */
+              /* ========================================================================= */
+              <motion.div
+                key="result"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1 w-full pt-2"
+              >
+                <MoodResult
+                  analysis={analysis}
+                  onReset={resetMirror}
+                  t={t}
+                  language={language}
+                  onExploreInsights={() => handleNav("insights")}
+                  onOpenBreathing={() => setBreathingOpen(true)}
+                  onNavigateMode={(mode) => {
+                    setActiveMode(mode);
+                    setAnalysis(null);
+                  }}
+                  onStartTalk={() => {
+                    setActiveMode("talk");
+                    setAnalysis(null);
+                  }}
+                />
+              </motion.div>
+            ) : (
+              /* ========================================================================= */
+              /* Input & Intake Workspace (Portal + Live Preview)                          */
+              /* ========================================================================= */
+              <motion.div
+                key="intake"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start mt-2"
+              >
+                {/* Center Column Workspace */}
+                <div className="flex flex-col min-w-0">
+                  {/* Hero Header on Portal Mode */}
+                  {activeMode === "portal" && (
+                    <div className="text-center mb-6 max-w-2xl mx-auto">
+                      <h2
+                        data-testid="hero-title"
+                        className="font-display text-4xl md:text-5xl font-bold mb-2.5 leading-tight tracking-tight"
+                        style={{
+                          background: "linear-gradient(135deg, #FFB49D 0%, #C084FC 45%, #66B7FF 100%)",
+                          WebkitBackgroundClip: "text",
+                          WebkitTextFillColor: "transparent",
+                          backgroundClip: "text",
+                        }}
+                      >
+                        {t("heroTitle")}
+                      </h2>
+                      <p
+                        data-testid="hero-subtitle"
+                        className="text-xs md:text-sm font-light leading-relaxed max-w-lg mx-auto"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {t("heroSubtitle")}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Main Mode Workspace */}
+                  <div className="w-full">
+                    {activeMode === "portal" ? (
+                      <div className="flex flex-col items-center">
+                        <MirrorStage
+                          t={t}
+                          isAnalyzing={isAnalyzing}
+                          onModeChange={setActiveMode}
+                          onMirrorClick={() => setActiveMode("text")}
+                        />
+                        <PromptCarousel t={t} onPick={pickPrompt} />
+                      </div>
+                    ) : (
+                      <InputSection
+                        onAnalyze={analyzeMood}
+                        isAnalyzing={isAnalyzing}
+                        t={t}
+                        language={language}
+                        activeTab={activeMode}
+                        onTabChange={setActiveMode}
+                        seedText={seedText}
+                        onPickPrompt={pickPrompt}
+                        onBackToPortal={() => setActiveMode("portal")}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Column: Live Reflection Preview Particle Blob */}
+                <aside className="xl:sticky xl:top-6 w-full">
+                  <LiveReflectionPreview
+                    isAnalyzing={isAnalyzing}
+                    activeMode={activeMode}
+                    onPickPrompt={pickPrompt}
+                  />
+                </aside>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* Ambient music control */}
-      <AmbientControl mood={dominantMood} label={t("ambientMusic")} />
+      {/* Mobile Navigation Bar */}
+      <MobileNav currentView={currentView} onNav={handleNav} t={t} />
 
-      {/* Error toast */}
+      {/* Global Breathing Meditation Modal */}
+      <BreathingModal
+        isOpen={breathingOpen}
+        onClose={() => setBreathingOpen(false)}
+        t={t}
+      />
+
+      {/* Error Notification Toast */}
       <AnimatePresence>
         {analysisError && (
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
-            className="fixed bottom-6 z-50 flex items-start gap-3 px-5 py-4 rounded-2xl shadow-xl"
+            className="fixed bottom-24 xl:bottom-6 z-50 flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl"
             style={{
               left: "50%",
               x: "-50%",
-              background: "rgba(248,113,113,0.12)",
-              border: "1px solid rgba(248,113,113,0.4)",
-              backdropFilter: "blur(12px)",
+              background: "var(--card-glass-bg)",
+              border: "1px solid var(--card-glass-border)",
+              backdropFilter: "blur(20px)",
               maxWidth: "480px",
               width: "calc(100vw - 48px)",
             }}
           >
-            <AlertCircle size={18} strokeWidth={1.5} style={{ color: "#F87171", flexShrink: 0, marginTop: 2 }} />
-            <p className="text-sm flex-1" style={{ color: "#F87171" }}>{analysisError}</p>
+            <AlertCircle size={18} strokeWidth={1.8} className="text-pink-500 shrink-0 mt-0.5" />
+            <p className="text-sm flex-1" style={{ color: "var(--text-primary)" }}>{analysisError}</p>
             <button
               onClick={() => setAnalysisError("")}
-              style={{ color: "rgba(248,113,113,0.6)", flexShrink: 0 }}
+              className="hover:scale-105 shrink-0"
+              style={{ color: "var(--text-muted)" }}
+              aria-label="Dismiss error"
             >
-              <X size={16} strokeWidth={1.5} />
+              <X size={16} />
             </button>
           </motion.div>
         )}

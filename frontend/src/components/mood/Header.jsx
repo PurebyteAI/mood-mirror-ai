@@ -1,63 +1,64 @@
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Clock, Sparkles, BookOpen, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import React from "react";
+import { Flame, Settings, LogOut } from "lucide-react";
+import { AmbientControl } from "@/components/mood/AmbientControl";
+import HackathonDemoBar from "@/components/mood/HackathonDemoBar";
 
-export const Header = ({ currentView, onNav, language, onLanguageChange, t }) => {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const isLight = mounted && theme === "light";
+export const Header = ({ onNav, onExit, language, onLanguageChange, t, dominantMood, currentView, onSelectScenario }) => {
+  const handleExit = () => {
+    if (onExit) onExit();
+    else window.location.href = "/";
+  };
 
   return (
-    <motion.header
+    <header
       data-testid="app-header"
-      className="flex items-center justify-between py-4 mb-8"
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      className="flex items-center justify-between py-3 mb-2 w-full gap-3"
     >
+      {/* Mobile brand header (hidden on desktop) */}
       <button
         onClick={() => onNav("mirror")}
-        className="flex items-center gap-3 group"
+        className="flex items-center gap-3 xl:hidden text-left"
       >
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
-          style={{
-            background: "var(--gradient-primary)",
-          }}
-        >
-          <Sparkles size={18} strokeWidth={1.5} color="var(--gradient-button-text)" />
+        <div className="relative w-8 h-8 rounded-full flex items-center justify-center">
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: "radial-gradient(circle at 30% 30%, #FFB49D, #8C63FF 50%, #66B7FF 100%)",
+              boxShadow: "0 0 16px rgba(155, 108, 255, 0.5)",
+            }}
+          />
+          <div className="w-4 h-4 rounded-full" style={{ background: "var(--bg-base)" }} />
         </div>
-        <div className="text-left">
+        <div>
           <h1
             data-testid="app-title"
-            className="font-display text-xl font-bold tracking-tight"
+            className="font-display text-base font-bold tracking-tight leading-tight"
             style={{ color: "var(--text-primary)" }}
           >
             {t("appTitle")}
           </h1>
-          <p
-            className="text-xs font-mono"
-            style={{ color: "var(--text-muted)" }}
-          >
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
             {t("appSubtitle")}
           </p>
         </div>
       </button>
 
-      <div className="flex items-center gap-2">
+      {/* Center/Left: Hackathon Judge Demo Bar */}
+      {onSelectScenario && (
+        <div className="hidden md:block">
+          <HackathonDemoBar onSelectScenario={onSelectScenario} />
+        </div>
+      )}
+
+      {/* Right Controls: Language, Ambient Music, Streak Badge, Exit */}
+      <div className="flex items-center gap-2.5 ml-auto">
         {/* Language switcher */}
         <div
           data-testid="language-switcher"
-          className="flex items-center gap-0.5 p-1 rounded-full mr-1"
+          className="flex items-center p-0.5 rounded-full"
           style={{
-            background: "var(--chip-bg)",
-            border: "1px solid var(--control-border)",
+            background: "var(--control-bg)",
+            border: "1px solid var(--border-subtle)",
           }}
         >
           {["en", "de"].map((lang) => (
@@ -65,7 +66,7 @@ export const Header = ({ currentView, onNav, language, onLanguageChange, t }) =>
               key={lang}
               data-testid={`lang-${lang}`}
               onClick={() => onLanguageChange(lang)}
-              className="px-3 py-1.5 rounded-full text-xs font-mono font-semibold uppercase transition-all duration-200"
+              className="px-2.5 py-1 rounded-full text-[11px] font-mono font-medium uppercase transition-all"
               style={{
                 background: language === lang ? "var(--chip-active-bg)" : "transparent",
                 color: language === lang ? "var(--text-primary)" : "var(--text-muted)",
@@ -76,49 +77,61 @@ export const Header = ({ currentView, onNav, language, onLanguageChange, t }) =>
           ))}
         </div>
 
-        <button
-          data-testid="theme-toggle-btn"
-          onClick={() => setTheme(isLight ? "dark" : "light")}
-          aria-label={isLight ? t("switchToDark") : t("switchToLight")}
-          title={isLight ? t("switchToDark") : t("switchToLight")}
-          className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95"
+        {/* Ambient Sound Pill Toggle */}
+        <div className="hidden sm:flex">
+          <AmbientControl mood={dominantMood} label="" />
+        </div>
+
+        {/* Streak Badge Pill */}
+        <div
+          data-testid="streak-badge"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full cursor-default"
           style={{
-            background: "var(--chip-bg)",
-            border: "1px solid var(--control-border)",
+            background: "linear-gradient(135deg, rgba(255, 179, 156, 0.12), rgba(249, 115, 22, 0.12))",
+            border: "1px solid rgba(255, 179, 156, 0.3)",
+            boxShadow: "0 0 16px rgba(249, 115, 22, 0.15)",
+          }}
+        >
+          <Flame size={14} className="text-orange-500" />
+          <span
+            className="text-xs font-semibold tracking-wide"
+            style={{ color: "#FED7AA" }}
+          >
+            Streak 12
+          </span>
+        </div>
+
+        {/* Exit to Landing Page Button */}
+        <button
+          onClick={handleExit}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:bg-red-500/10 hover:border-red-500/30"
+          style={{
+            background: "var(--control-bg)",
+            border: "1px solid var(--border-subtle)",
+            color: "var(--text-secondary)",
+          }}
+          title="Exit to Landing Page"
+        >
+          <LogOut size={13} className="text-red-400" />
+          <span className="hidden sm:inline">Exit</span>
+        </button>
+
+        {/* Settings button on mobile */}
+        <button
+          onClick={() => onNav("settings")}
+          aria-label={t("navSettings")}
+          className="xl:hidden w-8 h-8 rounded-full flex items-center justify-center"
+          style={{
+            background: "var(--control-bg)",
+            border: "1px solid var(--border-subtle)",
             color: "var(--text-secondary)",
           }}
         >
-          {isLight ? <Moon size={16} strokeWidth={1.5} /> : <Sun size={16} strokeWidth={1.5} />}
-        </button>
-
-        <button
-          data-testid="nav-journal-btn"
-          onClick={() => onNav(currentView === "journal" ? "mirror" : "journal")}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95"
-          style={{
-            background: currentView === "journal" ? "var(--chip-active-bg)" : "transparent",
-            border: "1px solid var(--control-border)",
-            color: currentView === "journal" ? "var(--text-primary)" : "var(--text-secondary)",
-          }}
-        >
-          <BookOpen size={16} strokeWidth={1.5} />
-          {t("journal")}
-        </button>
-
-        <button
-          data-testid="toggle-history-btn"
-          onClick={() => onNav(currentView === "history" ? "mirror" : "history")}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95"
-          style={{
-            background: currentView === "history" ? "var(--chip-active-bg)" : "transparent",
-            border: "1px solid var(--control-border)",
-            color: currentView === "history" ? "var(--text-primary)" : "var(--text-secondary)",
-          }}
-        >
-          <Clock size={16} strokeWidth={1.5} />
-          {t("history")}
+          <Settings size={15} strokeWidth={1.5} />
         </button>
       </div>
-    </motion.header>
+    </header>
   );
 };
+
+export default Header;

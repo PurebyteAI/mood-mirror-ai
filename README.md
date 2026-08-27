@@ -22,10 +22,9 @@ cp .env.example .env
 ```
 
 Set at least:
-- `OPENROUTER_API_KEY`
-
-Optional features (speech/image/livekit) use:
 - `GROQ_API_KEY`
+
+Optional features (image/livekit/tts) use:
 - `RIME_API_KEY`
 - `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
 - `IMAGE_API_URL`, `IMAGE_API_BEARER_TOKEN`
@@ -207,7 +206,7 @@ Example:
 ```bash
 gcloud run services update mood-mirror-backend \
 	--region us-central1 \
-	--update-env-vars OPENROUTER_BASE_URL=https://openrouter.ai/api/v1,OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free
+	--update-env-vars GROQ_BASE_URL=https://api.groq.com/openai/v1,GROQ_MODEL=qwen/qwen3.8-27b
 ```
 
 For sensitive values, use Secret Manager and attach them to Cloud Run instead of plain env vars.
@@ -217,7 +216,7 @@ Example:
 ```bash
 gcloud run services update mood-mirror-backend \
 	--region us-central1 \
-	--update-secrets OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest,GROQ_API_KEY=GROQ_API_KEY:latest,RIME_API_KEY=RIME_API_KEY:latest,LIVEKIT_API_KEY=LIVEKIT_API_KEY:latest,LIVEKIT_API_SECRET=LIVEKIT_API_SECRET:latest,IMAGE_API_BEARER_TOKEN=IMAGE_API_BEARER_TOKEN:latest
+	--update-secrets GROQ_API_KEY=GROQ_API_KEY:latest,RIME_API_KEY=RIME_API_KEY:latest,LIVEKIT_API_KEY=LIVEKIT_API_KEY:latest,LIVEKIT_API_SECRET=LIVEKIT_API_SECRET:latest,IMAGE_API_BEARER_TOKEN=IMAGE_API_BEARER_TOKEN:latest
 ```
 
 ## Ports and Networking
@@ -233,8 +232,8 @@ gcloud run services update mood-mirror-backend \
 
 ## Troubleshooting
 
-- `OPENROUTER_API_KEY` missing:
-	- backend analysis calls fail; set it in `.env`
+- `GROQ_API_KEY` missing:
+	- backend analysis and transcription calls fail; set it in `.env`
 
 - Frontend cannot reach backend:
 	- verify containers are up: `docker compose ps`

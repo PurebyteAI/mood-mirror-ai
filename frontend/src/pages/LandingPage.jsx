@@ -1,925 +1,802 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "next-themes";
 import {
   Mic,
   PenTool,
   Type,
   Brain,
   Sparkles,
-  BarChart2,
-  BookOpen,
-  Music,
-  ChevronDown,
   ArrowRight,
-  PlayCircle,
-  X,
-  Moon,
-  Sun,
-  Smile,
-  Frown,
+  ShieldCheck,
   Zap,
-  Leaf,
-  HelpCircle,
-  Flame,
+  Lock,
+  MessageSquare,
+  ChevronDown,
 } from "lucide-react";
 
-/* ─── tiny helpers ─────────────────────────────────────── */
-const STEPS = [
-  {
-    icon: Type,
-    iconAlt: "Input icon",
-    colour: "#C084FC",
-    step: "01",
-    title: "Express Your Mood",
-    desc: "Share what you're feeling through text, a hand-drawn sketch, or a spoken message — any medium, any language.",
-    subItems: ["Text journal entry", "Free-hand drawing canvas", "Voice / speech recording"],
-  },
-  {
-    icon: Brain,
-    iconAlt: "AI analysis icon",
-    colour: "#60A5FA",
-    step: "02",
-    title: "Multimodal AI Analysis",
-    desc: "Multi-model (vision + language model) reads your input and pinpoints the dominant emotion with nuanced sub-scores.",
-    subItems: ["Vision + language fusion", "6-emotion taxonomy", "Confidence scores per mood"],
-  },
-  {
-    icon: Sparkles,
-    iconAlt: "Response icon",
-    colour: "#34D399",
-    step: "03",
-    title: "Personalised Response",
-    desc: "The AI crafts a unique poem, motivational message, or light-hearted joke — calibrated to your detected emotional state.",
-    subItems: ["Poem · Motivation · Joke", "Multilingual (EN / DE)", "Tone matched to mood intensity"],
-  },
-  {
-    icon: Music,
-    iconAlt: "Ambient experience icon",
-    colour: "#F97316",
-    step: "04",
-    title: "Ambient Experience",
-    desc: "A living Mood Orb pulses with your emotion while procedurally generated music shifts in real-time to match your inner world.",
-    subItems: ["Animated Mood Orb", "Procedural ambient music", "Theme adapts to emotion"],
-  },
-  {
-    icon: BarChart2,
-    iconAlt: "Tracking icon",
-    colour: "#FCD34D",
-    step: "05",
-    title: "Track & Reflect",
-    desc: "Every check-in is logged. Visualise 90-day mood trends, journal your entries with notes, and spot recurring emotional patterns.",
-    subItems: ["90-day trend chart", "Journal with custom notes", "Full mood history"],
-  },
-];
+const FRAME_COUNT = 240;
 
-const EMOTIONS = [
-  { icon: Smile, label: "Happiness", colour: "#FCD34D" },
-  { icon: Frown, label: "Sadness", colour: "#60A5FA" },
-  { icon: Flame, label: "Anger", colour: "#F87171" },
-  { icon: Leaf, label: "Calmness", colour: "#34D399" },
-  { icon: Zap, label: "Stress", colour: "#F97316" },
-  { icon: HelpCircle, label: "Curiosity", colour: "#C084FC" },
-];
-
-/* ─── sticky header ─────────────────────────────────────── */
-const LandingHeader = ({ onHowItWorks, onNewExpression }) => {
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handler, { passive: true });
-    return () => window.removeEventListener("scroll", handler);
-  }, []);
-
-  const isLight = mounted && theme === "light";
-
-  return (
-    <motion.header
-      role="banner"
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
-      style={{
-        background: scrolled ? "var(--bg-elevated)" : "transparent",
-        backdropFilter: scrolled ? "blur(20px)" : "none",
-        borderBottom: scrolled ? "1px solid var(--border-subtle)" : "none",
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
-        {/* ── Left: app logo ── */}
-        <a
-          href="#hero"
-          className="flex items-center gap-3 flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 rounded-lg"
-          aria-label="Mood Mirror AI — home"
-          onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-        >
-          <img
-            src="/logo.png"
-            alt="Mood Mirror AI logo"
-            className="h-9 sm:h-11 w-auto object-contain"
-            loading="eager"
-          />
-        </a>
-
-        {/* ── Right: nav + TU Dresden logo ── */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          {/* Desktop nav */}
-          <nav
-            role="navigation"
-            aria-label="Main navigation"
-            className="hidden sm:flex items-center gap-2"
-          >
-            <button
-              onClick={onHowItWorks}
-              aria-label="Scroll to How it Works section"
-              className="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-              style={{
-                color: "var(--text-secondary)",
-                border: "1px solid var(--control-border)",
-                background: "var(--chip-bg)",
-              }}
-            >
-              How it Works
-            </button>
-            <button
-              onClick={onNewExpression}
-              aria-label="Start a new mood expression"
-              className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-              style={{
-                background: "var(--gradient-primary)",
-                color: "var(--gradient-button-text)",
-              }}
-            >
-              <Sparkles size={14} strokeWidth={2} />
-              New Expression
-            </button>
-          </nav>
-
-          {/* Theme toggle — desktop */}
-          <button
-            onClick={() => setTheme(isLight ? "dark" : "light")}
-            aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
-            className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-            style={{
-              background: "var(--chip-bg)",
-              border: "1px solid var(--control-border)",
-              color: "var(--text-secondary)",
-            }}
-          >
-            {isLight ? <Moon size={15} strokeWidth={1.5} /> : <Sun size={15} strokeWidth={1.5} />}
-          </button>
-
-          {/* TU Dresden logo */}
-          <img
-            src="/TU_Dresden.png"
-            alt="TU Dresden logo"
-            className="h-7 sm:h-9 w-auto object-contain flex-shrink-0 opacity-80"
-            loading="eager"
-          />
-
-          {/* Theme toggle — mobile */}
-          <button
-            onClick={() => setTheme(isLight ? "dark" : "light")}
-            aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
-            className="sm:hidden w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-            style={{
-              background: "var(--chip-bg)",
-              border: "1px solid var(--control-border)",
-              color: "var(--text-secondary)",
-            }}
-          >
-            {isLight ? <Moon size={15} strokeWidth={1.5} /> : <Sun size={15} strokeWidth={1.5} />}
-          </button>
-
-          {/* Mobile hamburger */}
-          <button
-            className="sm:hidden flex flex-col gap-1.5 p-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-            aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
-            aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen((v) => !v)}
-          >
-            <span
-              className="block w-5 h-0.5 transition-all duration-200"
-              style={{
-                background: "var(--text-secondary)",
-                transform: mobileOpen ? "translateY(5px) rotate(45deg)" : "none",
-              }}
-            />
-            <span
-              className="block w-5 h-0.5 transition-all duration-200"
-              style={{
-                background: "var(--text-secondary)",
-                opacity: mobileOpen ? 0 : 1,
-              }}
-            />
-            <span
-              className="block w-5 h-0.5 transition-all duration-200"
-              style={{
-                background: "var(--text-secondary)",
-                transform: mobileOpen ? "translateY(-5px) rotate(-45deg)" : "none",
-              }}
-            />
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile dropdown */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="sm:hidden overflow-hidden"
-            style={{
-              background: "var(--bg-elevated)",
-              borderTop: "1px solid var(--border-subtle)",
-            }}
-          >
-            <div className="flex flex-col gap-3 px-6 py-5">
-              <button
-                onClick={() => { onHowItWorks(); setMobileOpen(false); }}
-                className="text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                How it Works
-              </button>
-              <button
-                onClick={() => { onNewExpression(); setMobileOpen(false); }}
-                className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold"
-                style={{
-                  background: "var(--gradient-primary)",
-                  color: "var(--gradient-button-text)",
-                }}
-              >
-                <Sparkles size={14} strokeWidth={2} />
-                New Expression
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.header>
-  );
-};
-
-/* ─── Demo modal ─────────────────────────────────────────── */
-const DemoModal = ({ open, onClose, onLaunch }) => (
-  <AnimatePresence>
-    {open && (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center px-4"
-        style={{ background: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)" }}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="demo-modal-title"
-        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      >
-        <motion.div
-          initial={{ scale: 0.92, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.92, opacity: 0, y: 20 }}
-          transition={{ type: "spring", stiffness: 240, damping: 24 }}
-          className="relative w-full max-w-lg rounded-3xl p-8"
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-highlight)",
-            boxShadow: "0 40px 80px rgba(0,0,0,0.6)",
-          }}
-        >
-          <button
-            onClick={onClose}
-            aria-label="Close demo modal"
-            className="absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-            style={{ color: "var(--text-muted)" }}
-          >
-            <X size={16} strokeWidth={2} />
-          </button>
-
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
-            style={{ background: "var(--gradient-primary)" }}
-          >
-            <PlayCircle size={28} strokeWidth={1.5} style={{ color: "var(--gradient-button-text)" }} />
-          </div>
-
-          <h2
-            id="demo-modal-title"
-            className="text-2xl font-bold mb-3"
-            style={{ color: "var(--text-primary)", fontFamily: "'Playfair Display', serif" }}
-          >
-            Try Mood Mirror AI
-          </h2>
-          <p className="text-base leading-relaxed mb-8" style={{ color: "var(--text-secondary)" }}>
-            Experience how the app analyses your emotional state, generates a personalised response,
-            and creates an ambient visual &amp; audio atmosphere — all in under 10 seconds.
-          </p>
-
-          {/* Feature highlights */}
-          <ul className="space-y-3 mb-8">
-            {[
-              { colour: "#C084FC", text: "Type, draw, or speak your current feeling" },
-              { colour: "#60A5FA", text: "AI detects emotion with nuanced scoring" },
-              { colour: "#34D399", text: "Receive a tailored poem, quote, or joke" },
-              { colour: "#F97316", text: "Ambient orb & music shift to match you" },
-            ].map(({ colour, text }) => (
-              <li key={text} className="flex items-center gap-3">
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ background: colour }}
-                  aria-hidden="true"
-                />
-                <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{text}</span>
-              </li>
-            ))}
-          </ul>
-
-          <button
-            onClick={onLaunch}
-            aria-label="Launch the live demo"
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-            style={{
-              background: "var(--gradient-primary)",
-              color: "var(--gradient-button-text)",
-            }}
-          >
-            <Sparkles size={16} strokeWidth={2} />
-            Launch Live Demo
-            <ArrowRight size={16} strokeWidth={2} />
-          </button>
-        </motion.div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-);
-
-/* ─── Main component ─────────────────────────────────────── */
-const LandingPage = () => {
+export const LandingPage = () => {
   const navigate = useNavigate();
-  const howItWorksRef = useRef(null);
-  const demoRef = useRef(null);
-  const [demoOpen, setDemoOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
+  const [scrollPercent, setScrollPercent] = useState(0);
 
-  const scrollToHowItWorks = () => {
-    howItWorksRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const canvasRef = useRef(null);
+  const imagesRef = useRef([]);
+  const currentFrameRef = useRef(0);
+  const targetFrameRef = useRef(0);
+  const animFrameIdRef = useRef(null);
+
+  const handleLaunch = () => {
+    navigate("/app");
   };
 
-  const scrollToDemo = () => {
-    demoRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
+  // Draw frame to canvas with object-fit cover
+  const drawFrame = useCallback((index) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-  const goToApp = () => navigate("/app");
+    const img = imagesRef.current[index];
+    if (!img || !img.complete) return;
+
+    const cw = canvas.width;
+    const ch = canvas.height;
+    const iw = img.naturalWidth || 1280;
+    const ih = img.naturalHeight || 720;
+
+    const scale = Math.max(cw / iw, ch / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    const dx = (cw - dw) / 2;
+    const dy = (ch - dh) / 2;
+
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }, []);
+
+  // Preload all 240 frames
+  useEffect(() => {
+    const imgs = [];
+    let firstLoaded = false;
+
+    for (let i = 0; i < FRAME_COUNT; i++) {
+      const img = new Image();
+      const numStr = String(i).padStart(6, "0");
+      img.src = `/frames/frame_${numStr}.jpg`;
+
+      img.onload = () => {
+        if (!firstLoaded) {
+          firstLoaded = true;
+          drawFrame(0);
+        }
+      };
+
+      imgs.push(img);
+    }
+
+    imagesRef.current = imgs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Smooth frame interpolation loop
+  useEffect(() => {
+    const animate = () => {
+      const diff = targetFrameRef.current - currentFrameRef.current;
+      if (Math.abs(diff) > 0.05) {
+        currentFrameRef.current += diff * 0.18;
+        const frameIdx = Math.min(
+          FRAME_COUNT - 1,
+          Math.max(0, Math.round(currentFrameRef.current))
+        );
+        drawFrame(frameIdx);
+      }
+      animFrameIdRef.current = requestAnimationFrame(animate);
+    };
+
+    animFrameIdRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
+    };
+  }, [drawFrame]);
+
+  // Window resize handler for canvas
+  useEffect(() => {
+    const handleResize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      drawFrame(Math.round(currentFrameRef.current));
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [drawFrame]);
+
+  // Scroll listener tracking window scroll percentage and mapping to frames
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll =
+        document.documentElement.scrollHeight - window.innerHeight;
+      if (totalScroll <= 0) return;
+
+      const currentScroll = window.scrollY;
+      const progress = Math.max(0, Math.min(1, currentScroll / totalScroll));
+
+      setScrollPercent(Math.round(progress * 100));
+      targetFrameRef.current = progress * (FRAME_COUNT - 1);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const faqs = [
+    {
+      q: "Do I need to sign up or create an account?",
+      a: "No login or account is required. Mood Mirror AI is completely frictionless — you can immediately begin expressing and reflecting with a single click.",
+    },
+    {
+      q: "Is my reflection and journal private?",
+      a: "Yes. All your reflections, sketches, and spoken voice recordings remain strictly private and confidential within your local session.",
+    },
+    {
+      q: "How does the multimodal AI understand sketches and drawings?",
+      a: "Our multi-vision AI evaluates color palettes, line trajectories, spatial density, and abstract visual metaphors to infer your underlying emotional tone.",
+    },
+    {
+      q: "What languages are supported?",
+      a: "Mood Mirror natively supports both English and German (DE) across all text, speech recognition, and poetic AI reflections.",
+    },
+  ];
 
   return (
     <div
-      className="min-h-screen overflow-x-hidden"
-      style={{ background: "var(--bg-base)", color: "var(--text-primary)" }}
+      className="relative min-h-screen overflow-x-hidden flex flex-col selection:bg-purple-500 selection:text-white"
+      style={{
+        background: "#020817",
+        color: "var(--text-primary)",
+      }}
     >
-      {/* Background ambient glow */}
-      <div
-        aria-hidden="true"
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(192,132,252,0.12) 0%, transparent 70%), radial-gradient(ellipse 60% 40% at 80% 80%, rgba(96,165,250,0.08) 0%, transparent 70%)",
-          zIndex: 0,
-        }}
-      />
-
-      <LandingHeader onHowItWorks={scrollToHowItWorks} onNewExpression={goToApp} />
-
-      {/* ════════════════════════════ HERO ════════════════════════════ */}
-      <section
-        id="hero"
-        className="relative z-10 min-h-screen flex flex-col items-center justify-center text-center px-4 sm:px-8 pt-20"
-        aria-label="Hero section"
-      >
-        {/* Floating emotion pills */}
-        <div aria-hidden="true" className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
-          {EMOTIONS.map(({ icon: Icon, label, colour }, i) => (
-            <motion.span
-              key={label}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * i, duration: 0.5 }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-medium"
-              style={{
-                background: `${colour}18`,
-                border: `1px solid ${colour}40`,
-                color: colour,
-              }}
-            >
-              <Icon size={12} strokeWidth={2} />
-              {label}
-            </motion.span>
-          ))}
-        </div>
-
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.7 }}
-          className="font-bold leading-tight mb-6 max-w-4xl"
+      {/* ========================================================================= */}
+      {/* FULL-PAGE FIXED SCROLLING CANVAS BACKGROUND                               */}
+      {/* ========================================================================= */}
+      <div className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full object-cover"
           style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: "clamp(2.6rem, 6vw, 5rem)",
-            color: "var(--text-primary)",
+            filter: "brightness(0.9) contrast(1.1) saturate(1.1)",
           }}
-        >
-          Your emotions,{" "}
-          <span
-            style={{
-              background: "linear-gradient(135deg, #C084FC 0%, #60A5FA 60%, #34D399 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            understood.
-          </span>
-        </motion.h1>
+        />
 
-        {/* Sub-headline */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.6 }}
-          className="text-lg sm:text-xl font-light leading-relaxed mb-10 max-w-2xl"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          Mood Mirror AI is an emotionally intelligent reflection tool. Express yourself
-          via text, drawing, or voice — and receive a personalised poem,
-          motivation, or a smile, wrapped in ambient visuals and music.
-        </motion.p>
-
-        {/* CTA buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-          className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4"
-        >
-          <button
-            onClick={goToApp}
-            aria-label="Start using Mood Mirror AI"
-            className="flex items-center gap-2 px-8 py-3.5 rounded-full text-base font-semibold transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 shadow-lg"
-            style={{
-              background: "var(--gradient-primary)",
-              color: "var(--gradient-button-text)",
-              boxShadow: "0 8px 32px rgba(192,132,252,0.35)",
-            }}
-          >
-            <Sparkles size={16} strokeWidth={2} />
-            New Expression
-            <ArrowRight size={16} strokeWidth={2} />
-          </button>
-          <button
-            onClick={scrollToHowItWorks}
-            aria-label="Learn how Mood Mirror AI works"
-            className="flex items-center gap-2 px-6 py-3.5 rounded-full text-base font-medium transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-            style={{
-              color: "var(--text-secondary)",
-              border: "1px solid var(--control-border)",
-              background: "var(--chip-bg)",
-            }}
-          >
-            How it Works
-            <ChevronDown size={16} strokeWidth={1.5} />
-          </button>
-        </motion.div>
-
-        {/* Input mode badges */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          className="flex items-center gap-4 sm:gap-6 mt-14"
-          aria-label="Supported input modes"
-        >
-          {[
-            { Icon: Type, label: "Text" },
-            { Icon: PenTool, label: "Draw" },
-            { Icon: Mic, label: "Voice" },
-          ].map(({ Icon, label }) => (
-            <div
-              key={label}
-              className="flex flex-col items-center gap-2"
-              aria-label={`${label} input mode`}
-            >
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                style={{
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                }}
-              >
-                <Icon size={20} strokeWidth={1.5} style={{ color: "var(--text-secondary)" }} />
-              </div>
-              <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-                {label}
-              </span>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <motion.button
-          onClick={scrollToHowItWorks}
-          aria-label="Scroll down to learn more"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 0.4, 1] }}
-          transition={{ delay: 1.5, duration: 2, repeat: Infinity, repeatType: "loop" }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-          style={{ color: "var(--text-muted)", border: "1px solid var(--border-subtle)" }}
-        >
-          <ChevronDown size={18} strokeWidth={1.5} />
-        </motion.button>
-      </section>
-
-      {/* ════════════ HOW IT WORKS ════════════ */}
-      <section
-        id="how-it-works"
-        ref={howItWorksRef}
-        className="relative z-10 py-24 sm:py-32 px-4 sm:px-8"
-        aria-labelledby="how-it-works-title"
-      >
-        <div className="max-w-6xl mx-auto">
-          {/* Section header */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-20"
-          >
-            <span
-              className="inline-block px-4 py-1.5 rounded-full text-xs font-mono font-semibold uppercase tracking-widest mb-5"
-              style={{
-                background: "rgba(192,132,252,0.12)",
-                border: "1px solid rgba(192,132,252,0.3)",
-                color: "#C084FC",
-              }}
-            >
-              Pipeline
-            </span>
-            <h2
-              id="how-it-works-title"
-              className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-5"
-              style={{ fontFamily: "'Playfair Display', serif", color: "var(--text-primary)" }}
-            >
-              How it Works
-            </h2>
-            <p
-              className="text-base sm:text-lg font-light leading-relaxed max-w-2xl mx-auto"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              Five seamlessly connected stages transform raw emotion into a rich,
-              personalised experience — in under 10 seconds.
-            </p>
-          </motion.div>
-
-          {/* Pipeline diagram – vertical connector */}
-          <div className="relative">
-            {/* Vertical line (desktop only) */}
-            <div
-              aria-hidden="true"
-              className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px"
-              style={{
-                background:
-                  "linear-gradient(to bottom, transparent 0%, rgba(192,132,252,0.25) 8%, rgba(96,165,250,0.25) 50%, rgba(52,211,153,0.25) 92%, transparent 100%)",
-                transform: "translateX(-50%)",
-              }}
-            />
-
-            <div className="space-y-8 sm:space-y-12 lg:space-y-0">
-              {STEPS.map(({ icon: Icon, colour, step, title, desc, subItems }, i) => {
-                const isEven = i % 2 === 0;
-                return (
-                  <motion.div
-                    key={step}
-                    initial={{ opacity: 0, x: isEven ? -30 : 30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, margin: "-60px" }}
-                    transition={{ duration: 0.55, delay: 0.05 }}
-                    className={`relative flex flex-col lg:flex-row ${
-                      isEven ? "lg:pr-[52%]" : "lg:pl-[52%] lg:flex-row-reverse"
-                    } lg:mb-16`}
-                  >
-                    {/* Node on the centre line */}
-                    <div
-                      aria-hidden="true"
-                      className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full items-center justify-center z-10"
-                      style={{
-                        background: "var(--bg-base)",
-                        border: `2px solid ${colour}`,
-                        boxShadow: `0 0 20px ${colour}40`,
-                      }}
-                    >
-                      <Icon size={20} strokeWidth={1.5} style={{ color: colour }} />
-                    </div>
-
-                    {/* Card */}
-                    <article
-                      className="w-full rounded-3xl p-6 sm:p-8 transition-all duration-300 hover:scale-[1.01]"
-                      style={{
-                        background: "var(--bg-surface)",
-                        border: `1px solid ${colour}22`,
-                        boxShadow: `0 4px 32px rgba(0,0,0,0.3)`,
-                      }}
-                      aria-label={`Step ${step}: ${title}`}
-                    >
-                      {/* Step indicator */}
-                      <div className="flex items-center gap-3 mb-4">
-                        {/* Mobile icon */}
-                        <div
-                          className="lg:hidden w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{
-                            background: `${colour}18`,
-                            border: `1px solid ${colour}40`,
-                          }}
-                        >
-                          <Icon size={18} strokeWidth={1.5} style={{ color: colour }} />
-                        </div>
-                        <span
-                          className="font-mono text-xs font-bold px-2.5 py-1 rounded-full"
-                          style={{
-                            background: `${colour}18`,
-                            border: `1px solid ${colour}30`,
-                            color: colour,
-                          }}
-                        >
-                          Step {step}
-                        </span>
-                      </div>
-
-                      <h3
-                        className="text-xl sm:text-2xl font-bold mb-3"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        {title}
-                      </h3>
-                      <p
-                        className="text-sm sm:text-base leading-relaxed mb-5"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        {desc}
-                      </p>
-
-                      {/* Sub-items */}
-                      <ul className="space-y-2" role="list">
-                        {subItems.map((item) => (
-                          <li
-                            key={item}
-                            className="flex items-center gap-2 text-sm"
-                            style={{ color: "var(--text-muted)" }}
-                          >
-                            <span
-                              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                              style={{ background: colour }}
-                              aria-hidden="true"
-                            />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </article>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Emotion taxonomy grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="mt-20 text-center"
-          >
-            <p
-              className="text-sm font-mono uppercase tracking-widest mb-6"
-              style={{ color: "var(--text-muted)" }}
-            >
-              Detectable Emotions
-            </p>
-            <div
-              role="list"
-              aria-label="Six detectable emotions"
-              className="flex flex-wrap justify-center gap-3"
-            >
-              {EMOTIONS.map(({ icon: Icon, label, colour }) => (
-                <div
-                  key={label}
-                  role="listitem"
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm"
-                  style={{
-                    background: `${colour}14`,
-                    border: `1px solid ${colour}35`,
-                    color: colour,
-                  }}
-                >
-                  <Icon size={14} strokeWidth={2} aria-hidden="true" />
-                  <span className="font-medium">{label}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ════════════════════ FEATURES STRIP ════════════════════ */}
-      <section
-        className="relative z-10 py-16 px-4 sm:px-8"
-        aria-label="Key features"
-        style={{ borderTop: "1px solid var(--border-subtle)", borderBottom: "1px solid var(--border-subtle)" }}
-      >
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
-            {[
-              { icon: Brain, label: "Vision + Language AI", colour: "#C084FC" },
-              { icon: Music, label: "Generative Ambient Music", colour: "#60A5FA" },
-              { icon: BookOpen, label: "Mood Journal & History", colour: "#34D399" },
-              { icon: BarChart2, label: "90-day Trend Charts", colour: "#FCD34D" },
-            ].map(({ icon: Icon, label, colour }) => (
-              <motion.div
-                key={label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col items-center gap-3"
-              >
-                <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                  style={{ background: `${colour}18`, border: `1px solid ${colour}35` }}
-                  aria-hidden="true"
-                >
-                  <Icon size={22} strokeWidth={1.5} style={{ color: colour }} />
-                </div>
-                <span className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                  {label}
-                </span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════ DEMO / CTA FOOTER ════════════════════ */}
-      <section
-        id="demo"
-        ref={demoRef}
-        className="relative z-10 py-28 sm:py-36 px-4 sm:px-8 text-center"
-        aria-labelledby="demo-section-title"
-      >
-        {/* Glow blob */}
+        {/* Ambient Dark Cosmic Vignette Overlay */}
         <div
-          aria-hidden="true"
-          className="absolute inset-0 pointer-events-none flex items-center justify-center"
-        >
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 35%, rgba(2, 8, 23, 0.2) 0%, rgba(2, 8, 23, 0.85) 100%)",
+          }}
+        />
+      </div>
+
+      {/* Floating Scroll Progress Pill */}
+      <div
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-3.5 py-1.5 rounded-full shadow-2xl transition-all pointer-events-auto"
+        style={{
+          background: "var(--card-glass-bg)",
+          border: "1px solid var(--card-glass-border)",
+          boxShadow: "var(--card-glass-shadow)",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        <div className="w-16 h-1 rounded-full bg-white/20 overflow-hidden">
           <div
-            className="w-[600px] h-[400px] rounded-full"
+            className="h-full rounded-full transition-all duration-75"
             style={{
-              background:
-                "radial-gradient(ellipse at center, rgba(192,132,252,0.1) 0%, rgba(96,165,250,0.06) 50%, transparent 70%)",
-              filter: "blur(60px)",
+              width: `${scrollPercent}%`,
+              background: "linear-gradient(90deg, #FFB49D, #C084FC, #66B7FF)",
             }}
           />
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7 }}
-          className="relative max-w-3xl mx-auto"
+        <span
+          className="text-[11px] font-mono font-medium"
+          style={{ color: "var(--text-muted)" }}
         >
-          {/* Logos row */}
-          <div className="flex items-center justify-center gap-6 mb-12" aria-label="Project partners">
+          {scrollPercent}%
+        </span>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 1. TOP NAVBAR                                                             */}
+      {/* ========================================================================= */}
+      <header
+        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        style={{
+          background: "var(--sidebar-bg)",
+          backdropFilter: "blur(24px)",
+          borderBottom: "1px solid var(--border-subtle)",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between gap-4">
+          {/* Left: Brand + Institutional Partner Logos */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="flex items-center gap-3 text-left group"
+            >
+              <div className="relative w-9 h-9 rounded-full flex items-center justify-center">
+                <div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: "radial-gradient(circle at 30% 30%, #FFB49D, #8C63FF 50%, #66B7FF 100%)",
+                    boxShadow: "0 0 20px rgba(155, 108, 255, 0.6)",
+                  }}
+                />
+                <div className="w-4 h-4 rounded-full" style={{ background: "var(--bg-base)" }} />
+              </div>
+              <div>
+                <span className="font-display text-lg font-bold tracking-tight text-gradient block leading-tight">
+                  Mood Mirror AI
+                </span>
+                <span className="text-[10px] tracking-wider uppercase font-mono" style={{ color: "var(--text-muted)" }}>
+                  Emotion Intelligence
+                </span>
+              </div>
+            </button>
+
+            {/* Institutional Logos (ScaDS.AI & TU Dresden) */}
+            <div className="hidden lg:flex items-center gap-3 pl-4 ml-2 border-l border-white/10">
+              <img
+                src="/logo.png"
+                alt="ScaDS.AI"
+                style={{ height: "20px", width: "auto" }}
+                className="object-contain opacity-90 hover:opacity-100 transition-opacity"
+                title="ScaDS.AI - Center for Scalable Data Analytics and Artificial Intelligence"
+              />
+              <div className="w-[1px] h-4" style={{ background: "var(--border-subtle)" }} />
+              <img
+                src="/TU_Dresden.png"
+                alt="TU Dresden"
+                style={{ height: "20px", width: "auto" }}
+                className="object-contain opacity-90 hover:opacity-100 transition-opacity brightness-200 contrast-125"
+                title="TU Dresden"
+              />
+            </div>
+          </div>
+
+          {/* Center: Navigation Links */}
+          <nav className="hidden md:flex items-center gap-7 text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="hover:text-purple-400 transition-colors">
+              Experience
+            </button>
+            <button onClick={() => document.getElementById("modalities")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-purple-400 transition-colors">
+              Modalities
+            </button>
+            <button onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-purple-400 transition-colors">
+              How It Works
+            </button>
+            <button onClick={() => document.getElementById("research")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-purple-400 transition-colors">
+              Research
+            </button>
+            <button onClick={() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-purple-400 transition-colors">
+              FAQ
+            </button>
+          </nav>v>
+
+          {/* Right: Launch App CTA */}
+          <div className="flex items-center gap-3">
+            <motion.button
+              data-testid="launch-app-btn"
+              onClick={handleLaunch}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className="btn-mirror-me flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold shadow-lg"
+            >
+              <span>Enter Mirror</span>
+              <Sparkles size={14} />
+            </motion.button>
+          </div>
+        </div>
+      </header>
+
+      {/* ========================================================================= */}
+      {/* FLOATING SCROLL SECTIONS (Overlaying Fullscreen Scroll Canvas)             */}
+      {/* ========================================================================= */}
+      <main className="relative z-10 flex flex-col items-center w-full">
+        {/* ======================================================================= */}
+        {/* SECTION 1: OPEN CINEMATIC HERO SCENE                                    */}
+        {/* ======================================================================= */}
+        <section className="min-h-screen w-full flex flex-col justify-center items-center text-center px-4 sm:px-8 pt-24 pb-16 max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col items-center max-w-4xl space-y-6"
+          >
+            {/* Institutional Research Badge */}
+            <div
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold tracking-wide shadow-lg backdrop-blur-xl"
+              style={{
+                background: "var(--card-glass-bg)",
+                border: "1px solid rgba(155, 108, 255, 0.4)",
+                color: "var(--text-primary)",
+              }}
+            >
+              <Sparkles size={14} className="text-violet-400" />
+              <span>ScaDS.AI & TU Dresden · Emotion Intelligence AI</span>
+            </div>
+
+            {/* Open, Majestic Headline */}
+            <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.08] tracking-tight drop-shadow-2xl">
+              Look into the mirror that{" "}
+              <span
+                style={{
+                  background: "linear-gradient(135deg, #FFB49D 0%, #C084FC 45%, #66B7FF 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                truly listens.
+              </span>
+            </h1>
+
+            {/* Subtitle */}
+            <p
+              className="text-base sm:text-xl font-light leading-relaxed max-w-2xl mx-auto drop-shadow-md"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Express what you feel through writing, sketching, or speaking. Scroll down as our AI reflects your emotional state with living harmonic visuals and poetic resonance.
+            </p>
+
+            {/* Interactive Hero CTA Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
+              <motion.button
+                onClick={handleLaunch}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+                className="btn-mirror-me flex items-center justify-center gap-3 px-9 py-4 rounded-full text-base font-semibold shadow-2xl"
+              >
+                <span>Enter Mirror App</span>
+                <ArrowRight size={18} />
+              </motion.button>
+
+              <button
+                onClick={() => document.getElementById("modalities")?.scrollIntoView({ behavior: "smooth" })}
+                className="flex items-center justify-center gap-2 px-7 py-4 rounded-full text-sm font-medium transition-all backdrop-blur-xl shadow-lg hover:border-violet-500/40"
+                style={{
+                  background: "var(--card-glass-bg)",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <span>Scroll to Explore</span>
+                <ChevronDown size={16} />
+              </button>
+            </div>
+
+            {/* Trust Badges */}
+            <div
+              className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs font-medium backdrop-blur-md px-5 py-2 rounded-full"
+              style={{
+                background: "rgba(0, 0, 0, 0.25)",
+                color: "var(--text-muted)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-emerald-400" />
+                <span>Zero Login Required</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Lock size={14} className="text-violet-400" />
+                <span>100% Private</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Zap size={14} className="text-blue-400" />
+                <span>Instant Groq AI Multi-Engine</span>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* ======================================================================= */}
+        {/* SECTION 2: 4 MULTIMODAL MODALITIES                                      */}
+        {/* ======================================================================= */}
+        <section id="modalities" className="min-h-screen w-full flex flex-col justify-center py-24 px-4 sm:px-8 max-w-7xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <span className="text-xs font-mono font-semibold uppercase text-violet-400 tracking-wider block mb-2">
+              Multimodal Consciousness
+            </span>
+            <h2 className="font-display text-3xl sm:text-5xl font-bold mb-3">
+              Express in the medium that feels natural
+            </h2>
+            <p className="text-sm sm:text-base font-light" style={{ color: "var(--text-secondary)" }}>
+              Whether you want to write a few words, sketch colors on canvas, speak freely, or hold an interactive audio dialogue.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Card 1: Text */}
+            <div
+              className="p-7 rounded-3xl backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
+              style={{
+                background: "var(--card-glass-bg)",
+                border: "1px solid var(--card-glass-border)",
+                boxShadow: "var(--card-glass-shadow)",
+              }}
+            >
+              <div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-violet-500/15 text-violet-400 border border-violet-500/30">
+                  <Type size={22} />
+                </div>
+                <h3 className="font-display text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+                  Write
+                </h3>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                  Journal freely with rich mood emojis, inspirational prompt chips, and reflective keyboard shortcuts.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                <span className="text-[11px] font-mono text-violet-400">01 / Text</span>
+                <button onClick={handleLaunch} className="text-xs font-semibold flex items-center gap-1 hover:underline">
+                  Try Writing <ArrowRight size={11} />
+                </button>
+              </div>
+            </div>
+
+            {/* Card 2: Draw */}
+            <div
+              className="p-7 rounded-3xl backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
+              style={{
+                background: "var(--card-glass-bg)",
+                border: "1px solid var(--card-glass-border)",
+                boxShadow: "var(--card-glass-shadow)",
+              }}
+            >
+              <div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-pink-500/15 text-pink-400 border border-pink-500/30">
+                  <PenTool size={22} />
+                </div>
+                <h3 className="font-display text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+                  Draw
+                </h3>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                  Sketch colors, lines, and shapes on a smooth canvas. Our multimodal vision AI decodes visual emotional metaphors.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                <span className="text-[11px] font-mono text-pink-400">02 / Drawing</span>
+                <button onClick={handleLaunch} className="text-xs font-semibold flex items-center gap-1 hover:underline">
+                  Try Drawing <ArrowRight size={11} />
+                </button>
+              </div>
+            </div>
+
+            {/* Card 3: Speak */}
+            <div
+              className="p-7 rounded-3xl backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
+              style={{
+                background: "var(--card-glass-bg)",
+                border: "1px solid var(--card-glass-border)",
+                boxShadow: "var(--card-glass-shadow)",
+              }}
+            >
+              <div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                  <Mic size={22} />
+                </div>
+                <h3 className="font-display text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+                  Speak
+                </h3>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                  Speak naturally with a live reactive audio frequency waveform. Instant voice transcription in English & German.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                <span className="text-[11px] font-mono text-blue-400">03 / Voice</span>
+                <button onClick={handleLaunch} className="text-xs font-semibold flex items-center gap-1 hover:underline">
+                  Try Speaking <ArrowRight size={11} />
+                </button>
+              </div>
+            </div>
+
+            {/* Card 4: Talk Beta */}
+            <div
+              className="p-7 rounded-3xl backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
+              style={{
+                background: "var(--card-glass-bg)",
+                border: "1px solid var(--card-glass-border)",
+                boxShadow: "var(--card-glass-shadow)",
+              }}
+            >
+              <div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <MessageSquare size={22} />
+                </div>
+                <h3 className="font-display text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+                  Talk (Live Beta)
+                </h3>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                  Have an interactive spoken dialogue with the living mirror using LiveKit low-latency audio streaming.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                <span className="text-[11px] font-mono text-emerald-400">04 / Live Audio</span>
+                <button onClick={handleLaunch} className="text-xs font-semibold flex items-center gap-1 hover:underline">
+                  Try Talk <ArrowRight size={11} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ======================================================================= */}
+        {/* SECTION 3: THE 3-STEP INTROSPECTION JOURNEY                             */}
+        {/* ======================================================================= */}
+        <section id="how-it-works" className="min-h-screen w-full flex flex-col justify-center py-24 px-4 sm:px-8 max-w-7xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <span className="text-xs font-mono font-semibold uppercase text-violet-400 tracking-wider block mb-2">
+              The Introspection Loop
+            </span>
+            <h2 className="font-display text-3xl sm:text-5xl font-bold mb-3">
+              How The Mirror Reflects You
+            </h2>
+            <p className="text-sm sm:text-base font-light" style={{ color: "var(--text-secondary)" }}>
+              A gentle 3-step loop designed for emotional clarity, self-awareness, and calm.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div
+              className="p-8 rounded-3xl backdrop-blur-2xl text-center flex flex-col items-center space-y-4"
+              style={{
+                background: "var(--card-glass-bg)",
+                border: "1px solid var(--card-glass-border)",
+              }}
+            >
+              <div className="w-14 h-14 rounded-full flex items-center justify-center font-display text-xl font-bold text-violet-400 bg-violet-500/10 border border-violet-500/20">
+                1
+              </div>
+              <h3 className="font-display text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                Express Freely
+              </h3>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                Share whatever is on your mind without pressure. No right or wrong answers — your genuine expression is all that matters.
+              </p>
+            </div>
+
+            <div
+              className="p-8 rounded-3xl backdrop-blur-2xl text-center flex flex-col items-center space-y-4"
+              style={{
+                background: "var(--card-glass-bg)",
+                border: "1px solid var(--card-glass-border)",
+              }}
+            >
+              <div className="w-14 h-14 rounded-full flex items-center justify-center font-display text-xl font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20">
+                2
+              </div>
+              <h3 className="font-display text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                Cognitive Reflection
+              </h3>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                Our multi-modal models analyze linguistic and visual signals, identifying emotions like calm, hope, nostalgia, or tension.
+              </p>
+            </div>
+
+            <div
+              className="p-8 rounded-3xl backdrop-blur-2xl text-center flex flex-col items-center space-y-4"
+              style={{
+                background: "var(--card-glass-bg)",
+                border: "1px solid var(--card-glass-border)",
+              }}
+            >
+              <div className="w-14 h-14 rounded-full flex items-center justify-center font-display text-xl font-bold text-pink-400 bg-pink-500/10 border border-pink-500/20">
+                3
+              </div>
+              <h3 className="font-display text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                Understand & Breathe
+              </h3>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                Receive a poetic empathetic reflection, save it to your private journal, listen via voice synthesis, and observe your emotional journey.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ======================================================================= */}
+        {/* SECTION 5: RESEARCH & INSTITUTIONAL AFFILIATIONS                        */}
+        {/* ======================================================================= */}
+        <section id="research" className="py-24 px-4 sm:px-8 max-w-7xl mx-auto w-full">
+          <div
+            className="p-8 md:p-12 rounded-3xl backdrop-blur-2xl flex flex-col lg:flex-row items-center justify-between gap-10"
+            style={{
+              background: "var(--card-glass-bg)",
+              border: "1px solid var(--card-glass-border)",
+              boxShadow: "var(--card-glass-shadow)",
+            }}
+          >
+            <div className="flex-1 space-y-4 text-center lg:text-left">
+              <span className="text-xs font-mono font-semibold uppercase text-violet-400 tracking-wider">
+                Academic & Research Foundation
+              </span>
+              <h2 className="font-display text-2xl sm:text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                Developed in partnership with ScaDS.AI & TU Dresden
+              </h2>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                Mood Mirror AI is an exploratory initiative combining emotion recognition, multimodal deep learning, and ambient computing. Built for ethical, privacy-preserving, and non-clinical human-computer introspection.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-6 p-6 rounded-2xl bg-white/[0.03] border border-white/10">
+              <img
+                src="/logo.png"
+                alt="ScaDS.AI Logo"
+                style={{ height: "38px", width: "auto" }}
+                className="object-contain"
+              />
+              <div className="w-[1px] h-8 bg-white/20" />
+              <img
+                src="/TU_Dresden.png"
+                alt="TU Dresden Logo"
+                style={{ height: "38px", width: "auto" }}
+                className="object-contain brightness-200 contrast-125"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* ======================================================================= */}
+        {/* SECTION 6: FAQ ACCORDION                                                */}
+        {/* ======================================================================= */}
+        <section id="faq" className="py-24 px-4 sm:px-8 max-w-4xl mx-auto w-full">
+          <div className="text-center mb-12">
+            <span className="text-xs font-mono font-semibold uppercase text-violet-400 tracking-wider block mb-2">
+              Questions & Answers
+            </span>
+            <h2 className="font-display text-3xl sm:text-5xl font-bold">Frequently Asked Questions</h2>
+          </div>
+
+          <div className="space-y-3">
+            {faqs.map((faq, idx) => {
+              const isOpen = openFaq === idx;
+              return (
+                <div
+                  key={idx}
+                  className="rounded-2xl overflow-hidden backdrop-blur-2xl transition-colors"
+                  style={{
+                    background: "var(--card-glass-bg)",
+                    border: "1px solid var(--card-glass-border)",
+                  }}
+                >
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : idx)}
+                    className="w-full p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm sm:text-base"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    <span>{faq.q}</span>
+                    <ChevronDown
+                      size={18}
+                      className={`shrink-0 transition-transform duration-200 text-violet-400 ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="px-5 pb-5 text-xs sm:text-sm leading-relaxed"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {faq.a}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ======================================================================= */}
+        {/* SECTION 7: FINAL CALL TO ACTION BANNER                                  */}
+        {/* ======================================================================= */}
+        <section className="py-24 px-4 sm:px-8 max-w-5xl mx-auto w-full text-center">
+          <div
+            className="p-10 sm:p-16 rounded-3xl backdrop-blur-2xl relative overflow-hidden flex flex-col items-center space-y-6"
+            style={{
+              background: "linear-gradient(135deg, rgba(155, 108, 255, 0.18) 0%, rgba(102, 183, 255, 0.18) 100%)",
+              border: "1px solid rgba(155, 108, 255, 0.35)",
+              boxShadow: "0 20px 60px rgba(155, 108, 255, 0.2)",
+            }}
+          >
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-violet-500/20 text-violet-300">
+              <Sparkles size={24} />
+            </div>
+
+            <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight max-w-xl">
+              Ready to meet your inner reflection?
+            </h2>
+
+            <p className="text-sm sm:text-base font-light max-w-lg" style={{ color: "var(--text-secondary)" }}>
+              Zero setup, no login required. Express what is on your mind and receive your personalized reflection in seconds.
+            </p>
+
+            <motion.button
+              onClick={handleLaunch}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.96 }}
+              className="btn-mirror-me px-10 py-4 rounded-full text-base font-semibold shadow-2xl flex items-center gap-3"
+            >
+              <span>Enter Mirror App ✨</span>
+              <ArrowRight size={18} />
+            </motion.button>
+          </div>
+        </section>
+      </main>
+
+      {/* ========================================================================= */}
+      {/* 8. FOOTER                                                                 */}
+      {/* ========================================================================= */}
+      <footer
+        className="relative z-10 mt-auto py-12 px-4 sm:px-8 border-t"
+        style={{
+          borderColor: "var(--border-subtle)",
+          background: "var(--sidebar-bg)",
+        }}
+      >
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+          <div className="flex items-center gap-3">
+            <div className="relative w-8 h-8 rounded-full flex items-center justify-center">
+              <div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: "radial-gradient(circle at 30% 30%, #FFB49D, #8C63FF 50%, #66B7FF 100%)",
+                }}
+              />
+              <div className="w-3.5 h-3.5 rounded-full" style={{ background: "var(--bg-base)" }} />
+            </div>
+            <div>
+              <span className="font-display text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                Mood Mirror AI
+              </span>
+              <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                Privacy-first emotional reflection & mindfulness.
+              </p>
+            </div>
+          </div>
+
+          {/* Institutional Logos in Footer */}
+          <div className="flex items-center gap-4">
             <img
               src="/logo.png"
-              alt="Mood Mirror AI logo"
-              className="h-12 sm:h-16 w-auto object-contain"
-              loading="lazy"
+              alt="ScaDS.AI"
+              style={{ height: "20px", width: "auto" }}
+              className="object-contain opacity-80 hover:opacity-100 transition-opacity"
             />
-            <div
-              aria-hidden="true"
-              className="w-px h-10"
-              style={{ background: "var(--border-subtle)" }}
-            />
-            <img
-              src="/TU_Dresden.png"
-              alt="TU Dresden logo"
-              className="h-10 sm:h-12 w-auto object-contain opacity-70"
-              loading="lazy"
-            />
-          </div>
-
-          <h2
-            id="demo-section-title"
-            className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6"
-            style={{ fontFamily: "'Playfair Display', serif", color: "var(--text-primary)" }}
-          >
-            Ready to meet your mirror?
-          </h2>
-          <p
-            className="text-base sm:text-lg font-light leading-relaxed mb-12 max-w-xl mx-auto"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            No account required. Express yourself and receive a personalised
-            emotional reflection in seconds.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            {/* Primary: Demo modal */}
-            <button
-              onClick={() => setDemoOpen(true)}
-              aria-label="Open interactive demo"
-              className="flex items-center gap-2.5 px-10 py-4 rounded-full text-base font-semibold transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-              style={{
-                background: "var(--gradient-primary)",
-                color: "var(--gradient-button-text)",
-                boxShadow: "0 12px 40px rgba(192,132,252,0.4)",
-              }}
-            >
-              <PlayCircle size={20} strokeWidth={2} />
-              Demo
-            </button>
-
-            {/* Secondary: Jump straight to app */}
-            <button
-              onClick={goToApp}
-              aria-label="Go directly to the application"
-              className="flex items-center gap-2 px-8 py-4 rounded-full text-base font-medium transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-              style={{
-                color: "var(--text-secondary)",
-                border: "1px solid var(--control-border)",
-                background: "var(--chip-bg)",
-              }}
-            >
-              <Sparkles size={16} strokeWidth={1.5} />
-              New Expression
-              <ArrowRight size={16} strokeWidth={1.5} />
-            </button>
-          </div>
-
-          {/* Scroll-to-demo button (anchored to demo section) */}
-          <button
-            onClick={scrollToDemo}
-            aria-label="Scroll to demo section"
-            className="mt-10 mx-auto flex items-center gap-2 text-xs font-mono transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
-            style={{ color: "var(--text-muted)", opacity: 0.6 }}
-          >
-            <ChevronDown size={14} strokeWidth={1.5} />
-            scroll to demo
-          </button>
-        </motion.div>
-      </section>
-
-      {/* ════════════════════ SITE FOOTER ════════════════════ */}
-      <footer
-        className="relative z-10 py-8 px-6 sm:px-8"
-        style={{ borderTop: "1px solid var(--border-subtle)" }}
-        role="contentinfo"
-      >
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Mood Mirror AI" className="h-6 w-auto object-contain" loading="lazy" />
-            <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-              Mood Mirror AI © {new Date().getFullYear()}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-              A project by
-            </span>
             <img
               src="/TU_Dresden.png"
               alt="TU Dresden"
-              className="h-5 w-auto object-contain opacity-60"
-              loading="lazy"
+              style={{ height: "20px", width: "auto" }}
+              className="object-contain opacity-80 hover:opacity-100 transition-opacity brightness-200 contrast-125"
             />
+          </div>
+
+          <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+            © {new Date().getFullYear()} Mood Mirror AI · All reflections are private to your session.
           </div>
         </div>
       </footer>
-
-      {/* Demo modal */}
-      <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} onLaunch={goToApp} />
     </div>
   );
 };

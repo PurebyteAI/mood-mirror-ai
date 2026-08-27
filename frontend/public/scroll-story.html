@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mood Mirror AI - Scroll Experience</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: #020817;
+      color: #EDEDED;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+    }
+    .scroll-container {
+      height: 400vh;
+      position: relative;
+    }
+    .sticky-wrapper {
+      position: sticky;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: 1;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(2, 8, 23, 0.2) 0%, rgba(2, 8, 23, 0.75) 100%);
+      z-index: 2;
+      pointer-events: none;
+    }
+    .content-overlay {
+      position: absolute;
+      z-index: 10;
+      width: 100%;
+      max-width: 1100px;
+      padding: 2rem;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .step-card {
+      position: absolute;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      background: rgba(12, 23, 48, 0.65);
+      border: 1px solid rgba(155, 108, 255, 0.3);
+      backdrop-filter: blur(20px);
+      border-radius: 28px;
+      padding: 2.5rem 3rem;
+      max-width: 680px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    .step-card.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: 9999px;
+      background: rgba(155, 108, 255, 0.2);
+      border: 1px solid rgba(155, 108, 255, 0.4);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #C084FC;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #FFB49D 0%, #C084FC 50%, #66B7FF 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p {
+      font-size: 1.1rem;
+      color: #94A3B8;
+      line-height: 1.6;
+    }
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      padding: 1rem 2.25rem;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, #FFB49D, #C084FC 50%, #66B7FF 100%);
+      color: #020817;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 1rem;
+      box-shadow: 0 10px 30px rgba(192, 132, 252, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .cta-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 15px 40px rgba(192, 132, 252, 0.6);
+    }
+    .progress-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+      z-index: 100;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #FFB49D, #C084FC, #66B7FF);
+      transition: width 0.1s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <div class="scroll-container" id="scrollTrack">
+    <div class="sticky-wrapper">
+      <canvas id="frameCanvas"></canvas>
+      <div class="overlay"></div>
+
+      <div class="content-overlay">
+        <!-- Step 1 (0% - 25%) -->
+        <div class="step-card active" id="card1">
+          <div class="badge">✨ Multimodal Emotion AI</div>
+          <h2>Look into the mirror that truly listens.</h2>
+          <p>An intelligent reflective consciousness built for human emotional self-discovery, peace of mind, and clarity.</p>
+        </div>
+
+        <!-- Step 2 (25% - 50%) -->
+        <div class="step-card" id="card2">
+          <div class="badge">🎨 Freedom of Expression</div>
+          <h2>Write. Draw. Speak. Connect.</h2>
+          <p>Express how you feel in whatever form comes naturally. Our multi-vision and speech models comprehend your heart.</p>
+        </div>
+
+        <!-- Step 3 (50% - 75%) -->
+        <div class="step-card" id="card3">
+          <div class="badge">⚡ Groq-Powered Empathy</div>
+          <h2>Instant cognitive understanding & poetic resonance.</h2>
+          <p>Witness your feelings transform into tailored poems, soothing melodies, and actionable mindfulness guidance.</p>
+        </div>
+
+        <!-- Step 4 (75% - 100%) -->
+        <div class="step-card" id="card4">
+          <div class="badge">🔒 100% Private · Zero Login</div>
+          <h2>Your journey to mindfulness starts now.</h2>
+          <p>No password, no sign-up wall, no tracking. Enter directly and begin your reflection.</p>
+          <a href="/app" class="cta-btn">Enter Mirror App ✨</a>
+        </div>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const FRAME_COUNT = 240;
+    const canvas = document.getElementById("frameCanvas");
+    const ctx = canvas.getContext("2d");
+    const progressFill = document.getElementById("progressFill");
+    const scrollTrack = document.getElementById("scrollTrack");
+
+    const cards = [
+      document.getElementById("card1"),
+      document.getElementById("card2"),
+      document.getElementById("card3"),
+      document.getElementById("card4")
+    ];
+
+    const images = [];
+    let loadedCount = 0;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      renderFrame(currentFrameIndex);
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+
+    // Preload images
+    for (let i = 0; i < FRAME_COUNT; i++) {
+      const img = new Image();
+      const numStr = String(i).padStart(6, "0");
+      img.src = `/frames/frame_${numStr}.jpg`;
+      img.onload = () => {
+        loadedCount++;
+        if (loadedCount === 1) {
+          resizeCanvas();
+        }
+      };
+      images.push(img);
+    }
+
+    let currentFrameIndex = 0;
+
+    function renderFrame(index) {
+      const img = images[index];
+      if (!img || !img.complete) return;
+
+      const cw = canvas.width;
+      const ch = canvas.height;
+      const iw = img.naturalWidth || 1280;
+      const ih = img.naturalHeight || 720;
+
+      // Object-fit cover math
+      const scale = Math.max(cw / iw, ch / ih);
+      const dw = iw * scale;
+      const dh = ih * scale;
+      const dx = (cw - dw) / 2;
+      const dy = (ch - dh) / 2;
+
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.drawImage(img, dx, dy, dw, dh);
+    }
+
+    function onScroll() {
+      const rect = scrollTrack.getBoundingClientRect();
+      const totalScroll = scrollTrack.offsetHeight - window.innerHeight;
+      const currentScroll = -rect.top;
+      const progress = Math.max(0, Math.min(1, currentScroll / totalScroll));
+
+      progressFill.style.width = (progress * 100) + "%";
+
+      const targetIndex = Math.min(
+        FRAME_COUNT - 1,
+        Math.floor(progress * (FRAME_COUNT - 1))
+      );
+
+      if (targetIndex !== currentFrameIndex) {
+        currentFrameIndex = targetIndex;
+        renderFrame(currentFrameIndex);
+      }
+
+      // Card active states based on scroll percentage
+      let activeIndex = 0;
+      if (progress < 0.25) activeIndex = 0;
+      else if (progress < 0.52) activeIndex = 1;
+      else if (progress < 0.78) activeIndex = 2;
+      else activeIndex = 3;
+
+      cards.forEach((card, idx) => {
+        if (idx === activeIndex) {
+          card.classList.add("active");
+        } else {
+          card.classList.remove("active");
+        }
+      });
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("DOMContentLoaded", resizeCanvas);
+  </script>
+</body>
+</html>

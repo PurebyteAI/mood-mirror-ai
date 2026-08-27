@@ -1,207 +1,240 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Trash2, BookOpen, TrendingUp, Calendar, StickyNote } from "lucide-react";
-import { MoodChart } from "@/components/mood/MoodChart";
-import { MoodTrendChart } from "@/components/mood/MoodTrendChart";
+import {
+  ArrowLeft,
+  Trash2,
+  BookOpen,
+  Calendar,
+  StickyNote,
+  Star,
+  Search,
+  Heart,
+  Sparkles,
+  Quote,
+} from "lucide-react";
 import { API_BASE } from "@/lib/api";
 import axios from "axios";
-import { useTheme } from "next-themes";
 
-const MOOD_COLORS_DARK = {
-  happiness: "#FCD34D", happy: "#FCD34D",
-  sadness: "#60A5FA", sad: "#60A5FA",
-  anger: "#F87171", angry: "#F87171",
-  calmness: "#34D399", calm: "#34D399",
-  stress: "#F97316", stressed: "#F97316",
-  curiosity: "#C084FC", curious: "#C084FC",
-};
+const CATEGORIES = [
+  { id: "all", label: "All Reflections", icon: Star },
+  { id: "calm", label: "Moments of Calm", icon: Heart },
+  { id: "letters", label: "Future Letters", icon: BookOpen },
+  { id: "insights", label: "Key Reflections", icon: Sparkles },
+];
 
-const MOOD_COLORS_LIGHT = {
-  happiness: "#d4a840", happy: "#d4a840",
-  sadness: "#6898d0", sad: "#6898d0",
-  anger: "#c86858", angry: "#c86858",
-  calmness: "#5aaa78", calm: "#5aaa78",
-  stress: "#c87840", stressed: "#c87840",
-  curiosity: "#9870c0", curious: "#9870c0",
-};
-
-const JournalPage = ({ onBack, t }) => {
-  const { resolvedTheme } = useTheme();
-  const MOOD_COLORS = resolvedTheme === "light" ? MOOD_COLORS_LIGHT : MOOD_COLORS_DARK;
+const JournalPage = ({ onBack, t, embedded = false }) => {
   const [entries, setEntries] = useState([]);
-  const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeView, setActiveView] = useState("entries");
-  const [days, setDays] = useState(30);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
   const [expandedId, setExpandedId] = useState(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchEntries = useCallback(async () => {
     setLoading(true);
     try {
-      const [entriesRes, trendsRes] = await Promise.all([
-        axios.get(`${API_BASE}/journal?days=${days}`),
-        axios.get(`${API_BASE}/journal/trends?days=${days}`),
-      ]);
-      setEntries(entriesRes.data);
-      setTrends(trendsRes.data);
-    } catch (err) { console.error("Journal fetch error:", err); }
-    finally { setLoading(false); }
-  }, [days]);
+      const res = await axios.get(`${API_BASE}/journal?days=90`);
+      setEntries(res.data || []);
+    } catch (err) {
+      console.error("Journal fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchEntries();
+  }, [fetchEntries]);
 
   const deleteEntry = async (entryId) => {
     try {
       await axios.delete(`${API_BASE}/journal/${entryId}`);
       setEntries((prev) => prev.filter((e) => e.id !== entryId));
-    } catch (err) { console.error("Delete error:", err); }
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
   };
 
+  const filteredEntries = entries.filter((entry) => {
+    const matchesSearch =
+      searchQuery === "" ||
+      entry.response_text?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.journal_note?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.dominant_mood?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+    if (activeCategory === "calm") {
+      return (
+        entry.dominant_mood?.toLowerCase() === "calmness" ||
+        entry.dominant_mood?.toLowerCase() === "calm"
+      );
+    }
+    if (activeCategory === "letters") {
+      return (
+        entry.input_preview?.toLowerCase().includes("letter") ||
+        entry.journal_note?.toLowerCase().includes("letter")
+      );
+    }
+    return true;
+  });
+
   return (
-    <div className="max-w-5xl mx-auto" data-testid="journal-page">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <motion.button data-testid="journal-back-btn" onClick={onBack} whileHover={{ scale: 1.05, x: -4 }} whileTap={{ scale: 0.95 }} className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-            <ArrowLeft size={16} strokeWidth={1.5} />
-          </motion.button>
-          <div>
-            <h2 className="font-display text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{t("moodJournal")}</h2>
-            <p className="text-xs font-mono mt-1" style={{ color: "var(--text-muted)" }}>
-              {entries.length} {entries.length !== 1 ? t("reflectionsSaved") : t("reflectionSaved")}
-            </p>
+    <div className="max-w-5xl mx-auto space-y-6 pb-12" data-testid="journal-page">
+      {/* Header & Search */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            {!embedded && (
+              <button
+                data-testid="journal-back-btn"
+                onClick={onBack}
+                className="p-2 rounded-full text-white/60 hover:text-white"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight">
+              {t("collectionsTitle")}
+            </h2>
           </div>
+          <p className="text-sm text-white/60 mt-1">
+            Your personal digital sanctuary of saved reflections and meaningful moments.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "var(--chip-bg)", border: "1px solid var(--control-border)" }}>
-            {[7, 30, 90].map((d) => (
-              <button key={d} data-testid={`filter-${d}d`} onClick={() => setDays(d)} className="px-3 py-1.5 rounded-full text-xs font-mono transition-all"
-                style={{ background: days === d ? "var(--chip-active-bg)" : "transparent", color: days === d ? "var(--text-primary)" : "var(--text-muted)" }}>
-                {d}d
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "var(--chip-bg)", border: "1px solid var(--control-border)" }}>
-            <button data-testid="view-entries-btn" onClick={() => setActiveView("entries")} className="p-2 rounded-full transition-all"
-              style={{ background: activeView === "entries" ? "var(--chip-active-bg)" : "transparent", color: activeView === "entries" ? "var(--text-primary)" : "var(--text-muted)" }}>
-              <BookOpen size={16} strokeWidth={1.5} />
-            </button>
-            <button data-testid="view-trends-btn" onClick={() => setActiveView("trends")} className="p-2 rounded-full transition-all"
-              style={{ background: activeView === "trends" ? "var(--chip-active-bg)" : "transparent", color: activeView === "trends" ? "var(--text-primary)" : "var(--text-muted)" }}>
-              <TrendingUp size={16} strokeWidth={1.5} />
-            </button>
-          </div>
+        {/* Search Input */}
+        <div
+          className="flex items-center gap-2.5 px-4 py-2 rounded-full border border-white/10 w-full md:w-64"
+          style={{ background: "rgba(255, 255, 255, 0.04)" }}
+        >
+          <Search size={14} className="text-white/40" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search saved reflections..."
+            className="w-full bg-transparent outline-none text-xs text-white placeholder-white/40"
+          />
         </div>
       </div>
 
+      {/* Category Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+        {CATEGORIES.map((cat) => {
+          const Icon = cat.icon;
+          const active = activeCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all shrink-0"
+              style={{
+                background: active ? "rgba(155, 108, 255, 0.22)" : "rgba(255, 255, 255, 0.03)",
+                border: active ? "1px solid rgba(155, 108, 255, 0.45)" : "1px solid rgba(255, 255, 255, 0.08)",
+                color: active ? "#F7F7FF" : "var(--text-muted)",
+              }}
+            >
+              <Icon size={14} className={active ? "text-violet-400" : "text-white/40"} />
+              <span>{cat.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Entries List */}
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: "var(--border-subtle)", borderTopColor: "var(--text-secondary)" }} />
+          <div className="w-8 h-8 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : filteredEntries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center" data-testid="empty-journal">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/[0.04] border border-white/[0.08] mb-4">
+            <BookOpen size={24} className="text-white/40" />
+          </div>
+          <p className="text-lg font-medium text-white/80">{t("emptyJournal")}</p>
+          <p className="text-xs text-white/40 mt-1 max-w-sm">{t("emptyJournalHint")}</p>
         </div>
       ) : (
-        <AnimatePresence mode="wait">
-          {activeView === "trends" ? (
-            <motion.div key="trends" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              {trends.length > 0 ? (
-                <div className="space-y-6">
-                  <div className="glass-card p-6">
-                    <p className="text-xs font-mono uppercase tracking-widest mb-6" style={{ color: "var(--text-muted)" }}>{t("emotionTrends")}</p>
-                    <MoodTrendChart data={trends} t={t} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredEntries.map((entry, idx) => {
+            const isExpanded = expandedId === entry.id;
+            const moodColor = "#9B6CFF";
+            return (
+              <motion.div
+                key={entry.id || idx}
+                data-testid={`journal-entry-${idx}`}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.04 }}
+                className="p-5 rounded-3xl border border-white/[0.08] transition-all duration-300 relative group cursor-pointer"
+                style={{
+                  background: "linear-gradient(160deg, rgba(12, 23, 48, 0.8), rgba(7, 17, 38, 0.95))",
+                  boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+                }}
+                onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+              >
+                {/* Top Row: Mood Badge, Date, Delete */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-semibold capitalize"
+                      style={{
+                        background: "rgba(155, 108, 255, 0.16)",
+                        color: "#D8B4FE",
+                        border: "1px solid rgba(155, 108, 255, 0.3)",
+                      }}
+                    >
+                      {t(entry.dominant_mood?.toLowerCase()) || entry.dominant_mood}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-[11px] text-white/50 font-mono">
+                      <Calendar size={11} />
+                      <span>
+                        {new Date(entry.timestamp).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {getMoodStats(trends).map((stat) => (
-                      <div key={stat.mood} className="glass-card-light p-4 text-center" data-testid={`stat-${stat.mood}`}>
-                        <div className="w-3 h-3 rounded-full mx-auto mb-2" style={{ background: MOOD_COLORS[stat.mood] || "#A1A1AA" }} />
-                        <p className="text-xs font-mono capitalize" style={{ color: "var(--text-muted)" }}>{t(stat.mood)}</p>
-                        <p className="text-lg font-bold font-mono mt-1" style={{ color: MOOD_COLORS[stat.mood] || "#A1A1AA" }}>{stat.avgPct}%</p>
-                        <p className="text-xs" style={{ color: "var(--text-muted)" }}>{t("avg")}</p>
-                      </div>
-                    ))}
+
+                  <button
+                    data-testid={`delete-entry-${idx}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteEntry(entry.id);
+                    }}
+                    className="p-1.5 rounded-full text-white/30 hover:text-red-400 transition-colors"
+                    title="Remove from Collections"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                {/* Reflection Text */}
+                <div className="relative mb-3">
+                  <p
+                    className={`font-display text-sm md:text-base leading-relaxed text-white/90 ${
+                      isExpanded ? "" : "line-clamp-3"
+                    }`}
+                  >
+                    {entry.response_text}
+                  </p>
+                </div>
+
+                {/* Personal Note (if added) */}
+                {entry.journal_note && (
+                  <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-start gap-2.5 mt-3">
+                    <StickyNote size={13} className="text-violet-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-white/70 italic">"{entry.journal_note}"</p>
                   </div>
-                </div>
-              ) : <EmptyState t={t} />}
-            </motion.div>
-          ) : (
-            <motion.div key="entries" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              {entries.length > 0 ? (
-                <div className="space-y-4">
-                  {entries.map((entry, i) => {
-                    const color = MOOD_COLORS[entry.dominant_mood?.toLowerCase()] || "#C084FC";
-                    const isExpanded = expandedId === entry.id;
-                    return (
-                      <motion.div key={entry.id || i} data-testid={`journal-entry-${i}`}
-                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                        className="glass-card overflow-hidden cursor-pointer transition-all duration-300"
-                        style={{ borderLeft: `3px solid ${color}` }}
-                        onClick={() => setExpandedId(isExpanded ? null : entry.id)}
-                      >
-                        <div className="p-5">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${color}22` }}>
-                                <div className="w-3 h-3 rounded-full" style={{ background: color }} />
-                              </div>
-                              <div>
-                                <span className="text-sm font-medium capitalize" style={{ color }}>{t(entry.dominant_mood?.toLowerCase()) || entry.dominant_mood}</span>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <Calendar size={10} strokeWidth={1.5} style={{ color: "var(--text-muted)" }} />
-                                  <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-                                    {new Date(entry.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <button data-testid={`delete-entry-${i}`} onClick={(e) => { e.stopPropagation(); deleteEntry(entry.id); }}
-                              className="p-2 rounded-full transition-all" style={{ color: "var(--text-muted)", background: "transparent" }}>
-                              <Trash2 size={14} strokeWidth={1.5} />
-                            </button>
-                          </div>
-                          <p className={`text-sm font-display leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`} style={{ color: "var(--text-secondary)" }}>{entry.response_text}</p>
-                          {entry.journal_note && (
-                            <div className="flex items-start gap-2 mt-3 pt-3" style={{ borderTop: "1px solid var(--divider-subtle)" }}>
-                              <StickyNote size={12} strokeWidth={1.5} className="mt-0.5" style={{ color: "var(--text-muted)" }} />
-                              <p className="text-xs italic" style={{ color: "var(--text-muted)" }}>{entry.journal_note}</p>
-                            </div>
-                          )}
-                        </div>
-                        <AnimatePresence>
-                          {isExpanded && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
-                              <div className="px-5 pb-5 pt-2" style={{ borderTop: "1px solid var(--divider-subtle)" }}>
-                                <p className="text-xs font-mono uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>{t("emotionBreakdown")}</p>
-                                <MoodChart emotions={entry.emotions} t={t} />
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              ) : <EmptyState t={t} />}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
 };
 
-const EmptyState = ({ t }) => (
-  <div className="flex flex-col items-center justify-center py-24" data-testid="empty-journal">
-    <BookOpen size={48} strokeWidth={1} className="mb-4" style={{ color: "var(--text-muted)" }} />
-    <p className="text-lg font-light" style={{ color: "var(--text-secondary)" }}>{t("emptyJournal")}</p>
-    <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{t("emptyJournalHint")}</p>
-  </div>
-);
-
-const getMoodStats = (trends) => {
-  const moods = ["happiness", "sadness", "stress", "calmness", "anger", "curiosity"];
-  return moods.map((mood) => {
-    const values = trends.map((t) => t[mood] || 0);
-    const avg = values.reduce((a, b) => a + b, 0) / (values.length || 1);
-    return { mood, avgPct: Math.round(avg * 100) };
-  }).sort((a, b) => b.avgPct - a.avgPct);
-};
-
 export default JournalPage;
+
