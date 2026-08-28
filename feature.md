@@ -68,7 +68,7 @@
 
 - **Use Case**: Upon completing a reflection, the AI generates a customized, high-resolution generative dreamscape (e.g., "A surreal cosmic ocean glowing with amber twilight and bioluminescent calm") that reflects the exact emotional valence, arousal, and poetic metaphor.
 - **Technical Implementation Requirements**:
-  - **Backend**: Integrated `ImageGenerationService` leveraging fast FLUX.1-schnell / SDXL / Together AI endpoints with structured prompt synthesis derived from the detected emotion, valence, and keywords.
+  - **Backend**: Integrated `ImageGenerationService` leveraging fast SDXL Lightning (`@cf/bytedance/stable-diffusion-xl-lightning`) endpoints with structured prompt synthesis derived from the detected emotion, valence, and keywords.
   - **Frontend**: Shimmering generative canvas modal with particle reveal transition, download as 4K wallpaper, or save to personal "Living Museum".
 - **User Benefit**: Tangible, beautiful visual artifact representing the user's emotional state that transforms abstract feelings into art.
 - **Competitive Differentiation**: Traditional journaling apps produce text logs. Mood Mirror creates a visual museum of emotional growth.
@@ -176,7 +176,7 @@
   │          (Hours 0 - 3)        │          (Hours 3 - 7)        │          (Hours 7 - 10)         │
   ├───────────────────────────────┼───────────────────────────────┼─────────────────────────────────┤
   │ • Living Dreamscape Generative│ • Cross-Modal Fusion Intake   │ • Interactive Pitch Demo Mode   │
-  │   Art Engine (FLUX/SDXL API)  │ • CBT Cognitive Reframing UI  │ • Live Demo Scenario Presets    │
+  │   Art Engine (SDXL Lightning) │ • CBT Cognitive Reframing UI  │ • Live Demo Scenario Presets    │
   │ • High-res Dreamscape Gallery │ • Russell 2D Affect Chart     │ • End-to-End Build Verification │
   │ • Reveal Shimmer Animations   │ • Affective Biomarker Tooltips│ • Judge Presentation Deck       │
   └───────────────────────────────┴───────────────────────────────┴─────────────────────────────────┘

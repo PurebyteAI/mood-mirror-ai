@@ -139,7 +139,7 @@ export const LivingMuseum = ({ onStartReflection, t }) => {
               <div className="flex items-center justify-between text-[10px] font-mono text-white/50 pt-2 border-t border-white/10">
                 <span>Valence: {piece.valence}</span>
                 <span>Arousal: {piece.arousal}</span>
-                <span className="text-violet-300 font-semibold">FLUX-1 Generative Art</span>
+                <span className="text-violet-300 font-semibold">SDXL Lightning Art</span>
               </div>
             </div>
           </motion.div>

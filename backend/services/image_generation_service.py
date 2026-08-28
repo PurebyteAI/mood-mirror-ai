@@ -18,7 +18,7 @@ class ImageGenerationService:
     def __init__(self) -> None:
         self.cf_account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "ac118124b02ed877ef2cb9a4f609100f").strip()
         self.cf_api_token = os.environ.get("CLOUDFLARE_API_KEY", "").strip()
-        self.cf_model = os.environ.get("CLOUDFLARE_IMAGE_MODEL", "@cf/black-forest-labs/flux-1-schnell").strip()
+        self.cf_model = os.environ.get("CLOUDFLARE_IMAGE_MODEL", "@cf/bytedance/stable-diffusion-xl-lightning").strip()
 
         self.api_url = os.environ.get("IMAGE_API_URL", "https://image-api.aanuragtrivedi007.workers.dev").strip()
         self.api_token = os.environ.get("IMAGE_API_BEARER_TOKEN", "").strip()
@@ -91,29 +91,44 @@ class ImageGenerationService:
 
         await self._rate_limit()
 
-        # Method 1: Cloudflare Workers AI (Direct FLUX-1 Schnell)
+        # Method 1: Cloudflare Workers AI (Direct SDXL Lightning: @cf/bytedance/stable-diffusion-xl-lightning)
         if self.cf_account_id and self.cf_api_token:
             try:
                 cf_url = f"https://api.cloudflare.com/client/v4/accounts/{self.cf_account_id}/ai/run/{self.cf_model}"
-                logger.info(f"Generating Living Tapestry via Cloudflare FLUX ({self.cf_model})...")
+                logger.info(f"Generating Living Tapestry via Cloudflare SDXL Lightning ({self.cf_model})...")
                 res = await self._client.post(
                     cf_url,
                     headers={"Authorization": f"Bearer {self.cf_api_token}"},
                     json={"prompt": prompt},
                 )
                 if res.status_code == 200:
+                    content_type = res.headers.get("content-type", "")
+                    if (
+                        content_type.startswith("image/")
+                        or res.content.startswith(b"\x89PNG")
+                        or res.content.startswith(b"\xff\xd8\xff")
+                    ):
+                        mime = content_type.split(";")[0].strip() if content_type.startswith("image/") else "image/png"
+                        raw_b64 = base64.b64encode(res.content).decode("ascii")
+                        logger.info(f"Cloudflare SDXL Lightning image generation succeeded! ({len(res.content)} bytes)")
+                        return {
+                            "prompt": prompt,
+                            "image_url": None,
+                            "image_base64": f"data:{mime};base64,{raw_b64}",
+                        }
+
                     data = res.json()
                     img_b64 = data.get("result", {}).get("image")
                     if img_b64:
                         data_uri = self._format_b64_data_uri(img_b64)
-                        logger.info("Cloudflare FLUX image generation succeeded!")
+                        logger.info("Cloudflare SDXL Lightning image generation succeeded!")
                         return {
                             "prompt": prompt,
                             "image_url": None,
                             "image_base64": data_uri,
                         }
             except Exception as e:
-                logger.warning(f"Direct Cloudflare FLUX failed: {e}; falling back to worker endpoint...")
+                logger.warning(f"Direct Cloudflare SDXL Lightning failed: {e}; falling back to worker endpoint...")
 
         # Method 2: Worker Endpoint
         if self.api_token:

@@ -156,7 +156,7 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
                   className="w-10 h-10 rounded-full border-2 border-violet-400 border-t-transparent flex items-center justify-center"
                 />
                 <span className="text-xs font-mono text-violet-200 tracking-wider animate-pulse">
-                  Synthesizing FLUX-1 Dreamscape...
+                  Synthesizing SDXL Dreamscape...
                 </span>
               </motion.div>
             )}
