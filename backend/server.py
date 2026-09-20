@@ -385,15 +385,12 @@ def make_fallback(dominant_mood: str = "calmness"):
     }
 
 
-@app.get("/health")
-@api_router.get("/health")
+@app.api_route("/", methods=["GET", "HEAD"])
+@app.api_route("/health", methods=["GET", "HEAD"])
+@api_router.api_route("/", methods=["GET", "HEAD"])
+@api_router.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return {"status": "ok", "service": "mood-mirror-ai"}
-
-
-@api_router.get("/")
-async def root():
-    return {"message": "AI Mood Mirror API"}
 
 
 @api_router.post("/analyze")
