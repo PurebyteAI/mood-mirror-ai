@@ -70,4 +70,4 @@ services:
     envVars:
       # Must match the backend service name above
       - key: REACT_APP_BACKEND_URL
-        value: https://mood-mirror-backend.onrender.com
+        value: https://purebyteai-backend-mood-mirror-ai.hf.space
