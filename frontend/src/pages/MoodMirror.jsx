@@ -16,7 +16,10 @@ import { BreathingModal } from "@/components/mood/BreathingModal";
 import JournalPage from "@/pages/JournalPage";
 import { useTranslation } from "@/i18n";
 import { API_BASE } from "@/lib/api";
+import { getReflectionStyle } from "@/lib/preferences";
+import { getLanguage, setStoredLanguage, speechLocale } from "@/lib/languages";
 import axios from "axios";
+import { useTheme } from "next-themes";
 
 const MoodMirror = () => {
   const [analysis, setAnalysis] = useState(null);
@@ -24,13 +27,29 @@ const MoodMirror = () => {
   const [dominantMood, setDominantMood] = useState(null);
   const [currentView, setCurrentView] = useState("mirror");
   const [history, setHistory] = useState([]);
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState(getLanguage);
   const [analysisError, setAnalysisError] = useState("");
   const [activeMode, setActiveMode] = useState("portal");
   const [seedText, setSeedText] = useState("");
   const [breathingOpen, setBreathingOpen] = useState(false);
+  const [reflectionStyle, setReflectionStyle] = useState(getReflectionStyle);
+  const { theme } = useTheme();
 
   const { t } = useTranslation(language);
+
+  const changeLanguage = useCallback((lang) => {
+    setLanguage(setStoredLanguage(lang));
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = speechLocale(language);
+  }, [language]);
+
+  useEffect(() => {
+    const sync = () => setReflectionStyle(getReflectionStyle());
+    window.addEventListener("mm-preferences", sync);
+    return () => window.removeEventListener("mm-preferences", sync);
+  }, []);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -56,6 +75,7 @@ const MoodMirror = () => {
         spoken_text: spokenText,
         language: language,
         response_speed: "fast",
+        reflection_style: reflectionStyle,
       }, {
         timeout: 30000,
       });
@@ -72,7 +92,7 @@ const MoodMirror = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [language, t, fetchHistory]);
+  }, [language, t, fetchHistory, reflectionStyle]);
 
   const handleSelectDemoScenario = useCallback((scenario) => {
     analyzeMood(scenario.input_type, scenario.content);
@@ -129,6 +149,7 @@ const MoodMirror = () => {
           zIndex: 1,
         }}
       />
+      {theme === "romantic" && <div className="romantic-hearts" aria-hidden="true" />}
 
       <div className="relative z-10 flex min-h-screen">
         {/* Left Fixed Desktop Sidebar */}
@@ -149,7 +170,7 @@ const MoodMirror = () => {
             onNav={handleNav}
             onExit={handleExitToLanding}
             language={language}
-            onLanguageChange={setLanguage}
+            onLanguageChange={changeLanguage}
             t={t}
             dominantMood={dominantMood}
             onSelectScenario={handleSelectDemoScenario}
@@ -209,7 +230,7 @@ const MoodMirror = () => {
                 transition={{ duration: 0.3 }}
                 className="flex-1"
               >
-                <SettingsPage t={t} language={language} onLanguageChange={setLanguage} />
+                <SettingsPage t={t} language={language} onLanguageChange={changeLanguage} />
               </motion.div>
             ) : analysis ? (
               /* ========================================================================= */
@@ -237,6 +258,15 @@ const MoodMirror = () => {
                   onStartTalk={() => {
                     setActiveMode("talk");
                     setAnalysis(null);
+                  }}
+                  onFollowUp={(question) => {
+                    const prior = analysis?.input_preview && !String(analysis.input_preview).startsWith("[")
+                      ? analysis.input_preview
+                      : "";
+                    const content = prior
+                      ? `Earlier they shared: ${prior}\nFollow-up inquiry: ${question}`
+                      : question;
+                    analyzeMood("text", content);
                   }}
                 />
               </motion.div>
@@ -313,6 +343,7 @@ const MoodMirror = () => {
                     isAnalyzing={isAnalyzing}
                     activeMode={activeMode}
                     onPickPrompt={pickPrompt}
+                    t={t}
                   />
                 </aside>
               </motion.div>

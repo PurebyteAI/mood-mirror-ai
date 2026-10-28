@@ -17,7 +17,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
-from services.image_generation_service import ImageGenerationError, ImageGenerationService
+from services.image_generation_service import (
+    ImageGenerationError,
+    ImageGenerationService,
+    build_scene_prompt,
+)
 from services.groq_service import GroqError, GroqService
 from services.sqlite_store import SQLiteStore
 
@@ -163,8 +167,9 @@ class MoodAnalysisRequest(BaseModel):
     input_type: Literal["text", "drawing", "speech", "fusion"]
     content: str
     spoken_text: Optional[str] = None
-    language: Literal["en", "de"] = "en"
+    language: Literal["en", "de", "fr", "it", "es", "zh"] = "en"
     response_speed: Literal["fast", "balanced"] = "fast"
+    reflection_style: Literal["warm", "instructions", "animals", "fairy", "lotr", "matrix"] = "warm"
 
 
 class EmotionScore(BaseModel):
@@ -235,7 +240,8 @@ class ImageGenerationRequest(BaseModel):
     response_text: str
     dominant_mood: str
     response_type: str
-    language: Literal["en", "de"] = "en"
+    language: Literal["en", "de", "fr", "it", "es", "zh"] = "en"
+    tapestry_prompt: str = ""
 
 
 class ImageGenerationResponse(BaseModel):
@@ -255,15 +261,17 @@ class LiveKitTokenRequest(BaseModel):
 JSON_FORMAT = """
 {
   "emotions": [
-    {"emotion": "calmness", "score": 0.35},
-    {"emotion": "hopeful", "score": 0.30},
-    {"emotion": "reflective", "score": 0.20},
-    {"emotion": "curiosity", "score": 0.10},
-    {"emotion": "stress", "score": 0.05}
+    {"emotion": "joy", "score": 0.42},
+    {"emotion": "sadness", "score": 0.08},
+    {"emotion": "anger", "score": 0.04},
+    {"emotion": "fear", "score": 0.12},
+    {"emotion": "surprise", "score": 0.18},
+    {"emotion": "disgust", "score": 0.02},
+    {"emotion": "neutral", "score": 0.14}
   ],
-  "dominant_mood": "calmness",
-  "response_type": "reflection",
-  "response_text": "It sounds like you're carrying a lot, but you're still showing up. That takes quiet strength. Be gentle with yourself — you're doing better than you think.",
+  "dominant_mood": "joy",
+  "response_type": "poem",
+  "response_text": "The inbox grew a tiny paper hat,\\nthen sneezed confetti on the plan.\\nYou laughed, and half the worry sat\\ndown like a very polite fan.\\n\\nSo brew the tea, unclench the jaw,\\nthe plot twist likes you more than dread.\\nTomorrow's dragon is a straw\\none, and you already drew its bed.",
   "valence": 0.65,
   "arousal": 0.30,
   "cognitive_reframing": {
@@ -276,88 +284,269 @@ JSON_FORMAT = """
     ],
     "grounding_affirmation": "You are doing enough. You are allowed to rest and let the tide settle."
   },
-  "tapestry_prompt": "A serene bioluminescent twilight ocean with gentle pastel auroras and reflective mountain silhouettes, 4k digital concept art"
+  "tapestry_prompt": "A funny hopeful illustration of the exact objects and place the person named, bright daylight, no text"
 }
 """
 
+SUPPORTED_LANGUAGES = {"en", "de", "fr", "it", "es", "zh"}
+
 LANG_INSTRUCTIONS = {
-    "en": "Respond entirely in English. Your reflection should be warm, human, empathetic, and poetic.",
-    "de": "Antworte vollständig auf Deutsch. Die JSON-Schlüssel müssen auf Englisch bleiben, aber der Wert von response_text und cognitive_reframing muss auf Deutsch sein. Sei einfühlsam und poetisch.",
+    "en": "Respond entirely in English. The poem, cognitive_reframing text, and tapestry_prompt must be English.",
+    "de": "Antworte in der Sprache des Gedichts auf Deutsch. Die JSON-Schlüssel bleiben Englisch. response_text, cognitive_reframing und tapestry_prompt sind auf Deutsch. Das Gedicht bleibt lustig und optimistisch.",
+    "fr": "Réponds en français. Les clés JSON restent en anglais. response_text, cognitive_reframing et tapestry_prompt sont en français. Le poème reste drôle et optimiste.",
+    "it": "Rispondi in italiano. Le chiavi JSON restano in inglese. response_text, cognitive_reframing e tapestry_prompt sono in italiano. La poesia resta divertente e ottimista.",
+    "es": "Responde en español. Las claves JSON siguen en inglés. response_text, cognitive_reframing y tapestry_prompt van en español. El poema sigue siendo divertido y optimista.",
+    "zh": "请用普通话回答。JSON 键名保持英文。response_text、cognitive_reframing 和 tapestry_prompt 使用简体中文。诗依然幽默、乐观，仍是两节、每节四行。",
 }
 
-RULES_TEXT = """
-Rules:
-- Act as a gentle, thoughtful emotional mirror, NOT a therapist or clinical diagnostic system.
+STYLE_GUIDES = {
+    "warm": "Voice: warm and affectionate, like a friend who already likes them. Everyday kindness. No lecture.",
+    "instructions": "Voice: still a poem, and each stanza quietly offers one doable, optimistic instruction tied to what they actually said.",
+    "animals": "Voice: funny, kind animals living through their exact situation. Invent original animals. Do not use famous characters.",
+    "fairy": "Voice: a tiny original fairy tale about their exact situation, with a hopeful last stanza. Do not retell a published tale.",
+    "lotr": "Voice: an original hopeful road poem — small courage, companionship, a burden that turns lighter. Do not name, quote, or copy The Lord of the Rings, its characters, places, or lines.",
+    "matrix": "Voice: an original funny waking-up poem — a glitch, a real choice, an ordinary world that is brighter. Do not name, quote, or copy The Matrix, its characters, or its lines.",
+}
+
+POEM_RULES = """
+Poem rules for response_text:
+- Exactly two stanzas. Each stanza is exactly four lines. Put one blank line between the stanzas.
+- Keep every line short, about six to ten words.
+- Funny and optimistic, even when the feeling is heavy. Find the lighter turn without dismissing them.
+- Very connected to their words: name the specific people, objects, places, and events they mentioned.
+- No title, no intro sentence, no emoji, no quotation marks around the poem.
+- response_type must be "poem".
+Emotion rules:
+- emotions must be exactly these seven: joy, sadness, anger, fear, surprise, disgust, neutral.
+- Scores are between 0.0 and 1.0 and must reflect this specific input.
+- dominant_mood must be one of those seven, the strongest one.
+- tapestry_prompt describes a funny optimistic picture of THEIR scene (the objects and actions they named), not a generic landscape. No text in the image.
 - Never use cold clinical terminology.
-- The response_text must be warm, poetic, supportive, concise (60-120 words), and non-judgmental.
-- Be gentle and validate the user's emotional experience.
-- Emotional scores should be soft relative weights between 0.0 and 1.0.
-- Output 2D affect coordinates: valence (-1.0 to 1.0) and arousal (0.0 to 1.0).
-- Provide cognitive_reframing with gentle CBT perspective-shift prompts and grounding affirmation."""
+- Output valence (-1.0 to 1.0) and arousal (0.0 to 1.0).
+- Provide cognitive_reframing with gentle perspective-shift prompts and a grounding affirmation."""
 
-RULES_DRAWING = """
-Rules:
-- Act as a gentle, thoughtful emotional mirror interpreting the visual language of a drawing.
-- Look at colors, stroke intensity, flow, density, and composition to perceive the emotional energy.
-- Never be clinical or diagnostic.
-- The response_text must be warm, poetic, supportive, concise (60-120 words), reflecting what you see and feel in their expression.
-- Output valence (-1.0 to 1.0), arousal (0.0 to 1.0), cognitive_reframing, and tapestry_prompt."""
-
-RULES_FUSION = """
-Rules:
-- Act as a multimodal emotional intelligence mirror synthesizing both visual drawing and spoken voice narration simultaneously.
-- Detect the deeper harmony or unspoken contrast between what the user drew and what they spoke.
-- Provide a brief fusion_alignment note (e.g., 'Harmonious flow between words and colors' or 'Visual strokes reveal tension not spoken aloud').
-- The response_text must be compassionate, poetic, and unifying."""
+def _style_line(style: str) -> str:
+    return STYLE_GUIDES.get(style, STYLE_GUIDES["warm"])
 
 
-def build_text_prompt(input_type, content, lang_instruction):
+def build_text_prompt(input_type, content, lang_instruction, reflection_style="warm"):
     return (
-        "You are Mirror Me — a cinematic, intimate, and emotionally intelligent AI Mood Mirror.\n"
-        "Your role is to reflect the user's inner world with gentle clarity, warmth, and empathy.\n\n"
-        f"The user shared this expression through {input_type}:\n"
+        "You are Mirror Me — an emotionally intelligent mirror that answers with a short funny, optimistic poem.\n"
+        "The poem must be about this exact inquiry, not a generic mood.\n\n"
+        f"The user shared this through {input_type}:\n"
         f'"{content}"\n\n'
+        f"{_style_line(reflection_style)}\n"
         f"{lang_instruction}\n\n"
         "Respond ONLY with a valid JSON object matching this exact structure (no markdown fences, no code blocks):\n"
         f"{JSON_FORMAT}\n"
-        f"{RULES_TEXT}"
+        f"{POEM_RULES}"
     )
 
 
-def build_drawing_prompt(lang_instruction):
+def build_drawing_prompt(lang_instruction, reflection_style="warm"):
     return (
-        "You are Mirror Me — an emotionally intelligent AI Mood Mirror with vision capabilities.\n"
-        "You are viewing a hand-drawn expression created by a user in their private digital sanctuary.\n\n"
-        "Analyze the visual rhythms, colors, flowing lines, and composition to sense their underlying emotional state.\n\n"
+        "You are Mirror Me — an emotionally intelligent mirror looking at a hand-drawn expression.\n"
+        "Answer with a short funny, optimistic poem about the specific shapes, colors, and objects you see.\n\n"
+        f"{_style_line(reflection_style)}\n"
         f"{lang_instruction}\n\n"
         "Respond ONLY with a valid JSON object matching this exact structure (no markdown fences, no code blocks):\n"
         f"{JSON_FORMAT}\n"
-        f"{RULES_DRAWING}"
+        f"{POEM_RULES}\n"
+        "- tapestry_prompt must depict what is actually drawn, in a funny optimistic way."
     )
 
 
-def build_fusion_prompt(speech_content, lang_instruction):
+def build_fusion_prompt(speech_content, lang_instruction, reflection_style="warm"):
     return (
-        "You are Mirror Me — a cross-modal emotional intelligence engine synthesizing both a hand-drawn visual sketch and simultaneous spoken voice narration.\n"
-        f"Spoken Voice Narration: \"{speech_content}\"\n\n"
-        "Analyze both the drawing (colors, stroke intensity, chaotic or smooth lines) and spoken words to sense their complete emotional truth.\n\n"
+        "You are Mirror Me, reading a drawing and the words spoken with it as one inquiry.\n"
+        f"Spoken words: \"{speech_content}\"\n\n"
+        "Answer with a short funny, optimistic poem that uses both what they drew and what they said.\n"
+        f"{_style_line(reflection_style)}\n"
         f"{lang_instruction}\n\n"
         "Respond ONLY with a valid JSON object matching this structure:\n"
         f"{JSON_FORMAT}\n"
-        f"{RULES_FUSION}"
+        f"{POEM_RULES}\n"
+        "- Add fusion_alignment: one sentence on whether the drawing and the words agree."
     )
 
 
-def make_fallback(dominant_mood: str = "calmness"):
+def _snippet(content: str = "") -> str:
+    snippet = " ".join((content or "").split()).strip(" .\"'")
+    if snippet.startswith("data:") or snippet.startswith("["):
+        return ""
+    return snippet[:42]
+
+
+def _fallback_poem(content: str = "", language: str = "en") -> str:
+    snippet = _snippet(content)
+    poems = {
+        "en": (
+            f"So, {snippet} — what a plot twist," if snippet else "The day put on a silly little hat,",
+            "then tripped, and somehow stuck the landing.\n"
+            "You showed up anyway, brave and rumpled —\n"
+            "the mirror gives that move a standing.\n"
+            "\n"
+            "A pocket sun is negotiating peace\n"
+            "with whatever tried to cloud your view.\n"
+            "It offers you the brighter, funnier take:\n"
+            "you are already making it through.",
+        ),
+        "de": (
+            f"Also, {snippet} — was für ein Dreh," if snippet else "Der Tag setzte einen kleinen Hut auf,",
+            "stolperte dann, und landete trotzdem.\n"
+            "Du warst da, zerknittert und mutig —\n"
+            "der Spiegel klatscht genau dafür.\n"
+            "\n"
+            "Eine Taschensonne verhandelt Frieden\n"
+            "mit dem, was dir die Sicht nahm.\n"
+            "Sie bietet die hellere, lustigere Fassung:\n"
+            "du kommst schon hindurch.",
+        ),
+        "fr": (
+            f"Alors, {snippet} — quel rebondissement," if snippet else "Le jour a mis un petit chapeau,",
+            "puis a trébuché, et a tenu l'équilibre.\n"
+            "Tu es venu quand même, froissé et brave —\n"
+            "le miroir applaudit ce pas.\n"
+            "\n"
+            "Un soleil de poche négocie la paix\n"
+            "avec ce qui voilait ta vue.\n"
+            "Il t'offre la version plus claire, plus drôle :\n"
+            "tu es déjà en train de t'en sortir.",
+        ),
+        "it": (
+            f"Allora, {snippet} — che colpo di scena," if snippet else "Il giorno si è messo un cappellino,",
+            "poi è inciampato, e ha tenuto l'equilibrio.\n"
+            "Sei arrivato lo stesso, stropicciato e coraggioso —\n"
+            "lo specchio applaude quel passo.\n"
+            "\n"
+            "Un sole tascabile tratta la pace\n"
+            "con ciò che ti offuscava la vista.\n"
+            "Ti offre la versione più chiara e più buffa:\n"
+            "ci stai già passando attraverso.",
+        ),
+        "es": (
+            f"Entonces, {snippet} — qué giro," if snippet else "El día se puso un sombrerito,",
+            "luego tropezó, y aun así aterrizó.\n"
+            "Apareciste igual, arrugado y valiente —\n"
+            "el espejo aplaude ese paso.\n"
+            "\n"
+            "Un sol de bolsillo negocia la paz\n"
+            "con lo que te nublaba la vista.\n"
+            "Te ofrece la versión más clara y más graciosa:\n"
+            "ya estás saliendo de esto.",
+        ),
+        "zh": (
+            f"所以，{snippet}——真是个转折，" if snippet else "这一天给自己戴了顶小帽子，",
+            "然后绊了一下，居然稳住了。\n"
+            "你还是来了，皱巴巴的，也勇敢——\n"
+            "镜子为这一步鼓掌。\n"
+            "\n"
+            "一枚口袋太阳正在讲和，\n"
+            "跟那些挡住你视线的东西。\n"
+            "它递来更亮、更好笑的版本：\n"
+            "你已经在走过去。",
+        ),
+    }
+    opening, rest = poems.get(language, poems["en"])
+    return f"{opening}\n{rest}"
+
+
+def make_fallback(dominant_mood: str = "joy", content: str = "", language: str = "en"):
+    language = language if language in SUPPORTED_LANGUAGES else "en"
+    scene = " ".join((content or "").split()).strip()
+    if scene.startswith("data:") or scene.startswith("["):
+        scene = ""
+    scene = scene[:180] or {
+        "en": "a person and the small everyday thing they just described",
+        "de": "eine Person und die kleine alltägliche Sache, die sie gerade beschrieben hat",
+        "fr": "une personne et la petite chose du quotidien qu'elle vient de décrire",
+        "it": "una persona e la piccola cosa di tutti i giorni che ha appena descritto",
+        "es": "una persona y la pequeña cosa cotidiana que acaba de describir",
+        "zh": "一个人，以及他们刚刚说起的那件日常小事",
+    }[language]
+    reframes = {
+        "en": {
+            "distortion_detected": "Quiet Resilience",
+            "explanation": "Carrying significant weight with grace while seeking space to breathe.",
+            "reframing_prompts": [
+                "What is one realistic step you can take today without forcing perfection?",
+                "How can you acknowledge your courage for simply showing up?",
+                "What peaceful memory can anchor you right now?",
+            ],
+            "grounding_affirmation": "You are more capable and resilient than the temporary storms around you.",
+        },
+        "de": {
+            "distortion_detected": "Stille Widerstandskraft",
+            "explanation": "Du trägst viel mit Anstand und suchst trotzdem Raum zum Atmen.",
+            "reframing_prompts": [
+                "Welchen realistischen Schritt kannst du heute tun, ohne Perfektion zu erzwingen?",
+                "Wie kannst du deinen Mut anerkennen, einfach da gewesen zu sein?",
+                "Welche ruhige Erinnerung kann dich gerade halten?",
+            ],
+            "grounding_affirmation": "Du bist tragfähiger als die vorübergehenden Stürme um dich herum.",
+        },
+        "fr": {
+            "distortion_detected": "Résilience tranquille",
+            "explanation": "Tu portes beaucoup avec grâce, tout en cherchant de l'air.",
+            "reframing_prompts": [
+                "Quel pas réaliste peux-tu faire aujourd'hui sans viser la perfection ?",
+                "Comment reconnaître ton courage d'être simplement venu ?",
+                "Quel souvenir paisible peut t'ancrer maintenant ?",
+            ],
+            "grounding_affirmation": "Tu es plus solide que les tempêtes passagères autour de toi.",
+        },
+        "it": {
+            "distortion_detected": "Resilienza quieta",
+            "explanation": "Stai portando molto con grazia, e cerchi comunque spazio per respirare.",
+            "reframing_prompts": [
+                "Quale passo realistico puoi fare oggi senza forzare la perfezione?",
+                "Come puoi riconoscere il coraggio di esserci, semplicemente?",
+                "Quale ricordo pacifico può ancorarti adesso?",
+            ],
+            "grounding_affirmation": "Sei più capace delle tempeste passeggere intorno a te.",
+        },
+        "es": {
+            "distortion_detected": "Resiliencia quieta",
+            "explanation": "Llevas mucho con gracia y aun así buscas espacio para respirar.",
+            "reframing_prompts": [
+                "¿Qué paso realista puedes dar hoy sin exigir perfección?",
+                "¿Cómo puedes reconocer el valor de simplemente haber aparecido?",
+                "¿Qué recuerdo tranquilo puede anclarte ahora?",
+            ],
+            "grounding_affirmation": "Eres más capaz que las tormentas pasajeras a tu alrededor.",
+        },
+        "zh": {
+            "distortion_detected": "安静的韧性",
+            "explanation": "你体面地扛着不少重量，同时也在找一口呼吸的空间。",
+            "reframing_prompts": [
+                "今天有哪一步是现实的，不必追求完美？",
+                "你如何承认自己只是出现了，这件事本身就有勇气？",
+                "哪一段平静的记忆现在可以稳住你？",
+            ],
+            "grounding_affirmation": "你比周围这些暂时的风暴更稳。",
+        },
+    }
+    tapestries = {
+        "en": f"A funny optimistic illustration of this exact moment: {scene}. Bright, specific, no text, no generic ocean or galaxy.",
+        "de": f"Eine lustige optimistische Illustration genau dieses Moments: {scene}. Hell, konkret, ohne Text, kein generischer Ozean oder keine Galaxie.",
+        "fr": f"Une illustration drôle et optimiste de ce moment précis : {scene}. Lumineuse, concrète, sans texte, sans océan ni galaxie génériques.",
+        "it": f"Un'illustrazione buffa e ottimista di questo momento preciso: {scene}. Luminosa, concreta, senza testo, senza oceano o galassia generici.",
+        "es": f"Una ilustración divertida y optimista de este momento exacto: {scene}. Brillante, concreta, sin texto, sin océano ni galaxia genéricos.",
+        "zh": f"一幅有趣而乐观的插画，画的就是这一刻：{scene}。明亮、具体、没有文字，不要泛泛的海洋或星系。",
+    }
     return {
         "emotions": [
-            {"emotion": "calmness", "score": 0.40},
-            {"emotion": "hopeful", "score": 0.35},
-            {"emotion": "reflective", "score": 0.25},
+            {"emotion": "joy", "score": 0.34},
+            {"emotion": "sadness", "score": 0.12},
+            {"emotion": "anger", "score": 0.05},
+            {"emotion": "fear", "score": 0.08},
+            {"emotion": "surprise", "score": 0.16},
+            {"emotion": "disgust", "score": 0.03},
+            {"emotion": "neutral", "score": 0.22},
         ],
-        "dominant_mood": dominant_mood,
-        "response_text": "It sounds like you're carrying a lot, but you're still showing up. That takes quiet strength. Be gentle with yourself — you're doing better than you think.",
-        "response_type": "reflection",
+        "dominant_mood": dominant_mood if dominant_mood in {"joy", "sadness", "anger", "fear", "surprise", "disgust", "neutral"} else "joy",
+        "response_text": _fallback_poem(content, language),
+        "response_type": "poem",
         "valence": 0.65,
         "arousal": 0.25,
         "affect_quadrant": "Serenity / Calm Glow",
@@ -370,17 +559,8 @@ def make_fallback(dominant_mood: str = "calmness"):
             "contradiction_notice": "Your words sound relieved, but your voice and drawing carry more tension.",
             "subconscious_insight": "Relief + excitement + underlying exhaustion"
         },
-        "cognitive_reframing": {
-            "distortion_detected": "Quiet Resilience",
-            "explanation": "Carrying significant weight with grace while seeking space to breathe.",
-            "reframing_prompts": [
-                "What is one realistic step you can take today without forcing perfection?",
-                "How can you acknowledge your courage for simply showing up?",
-                "What peaceful memory can anchor you right now?"
-            ],
-            "grounding_affirmation": "You are more capable and resilient than the temporary storms around you."
-        },
-        "tapestry_prompt": "A serene bioluminescent twilight ocean with gentle pastel auroras and reflective mountain silhouettes, 4k digital concept art",
+        "cognitive_reframing": reframes[language],
+        "tapestry_prompt": tapestries[language],
         "fusion_alignment": "Synchronous alignment between inner intention and authentic expression."
     }
 
@@ -403,11 +583,12 @@ async def analyze_mood(request: MoodAnalysisRequest):
             prompt = build_fusion_prompt(
                 speech_content=request.spoken_text or request.content,
                 lang_instruction=lang_instruction,
+                reflection_style=request.reflection_style,
             )
             if request.content.startswith("data:image"):
                 image_data_url = request.content
         elif request.input_type == "drawing":
-            prompt = build_drawing_prompt(lang_instruction)
+            prompt = build_drawing_prompt(lang_instruction, request.reflection_style)
             if request.content.startswith("data:image"):
                 image_data_url = request.content
         else:
@@ -415,6 +596,7 @@ async def analyze_mood(request: MoodAnalysisRequest):
                 input_type=request.input_type,
                 content=request.content,
                 lang_instruction=lang_instruction,
+                reflection_style=request.reflection_style,
             )
 
         if groq_service is None:
@@ -457,7 +639,10 @@ async def analyze_mood(request: MoodAnalysisRequest):
         logger.error(f"Analysis error type={type(e).__name__}: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        result = make_fallback()
+        result = make_fallback(
+            content=request.content if request.input_type != "drawing" else "",
+            language=request.language,
+        )
         input_preview = "[Drawing]" if request.input_type == "drawing" else request.content[:100]
         fallback = MoodAnalysisResponse(
             input_type=request.input_type,
@@ -511,7 +696,7 @@ async def transcribe_audio(
         result = await groq_client.audio.transcriptions.create(
             file=(file.filename or "audio.webm", audio_bytes, file.content_type or "audio/webm"),
             model="whisper-large-v3-turbo",
-            language=language if language in ("en", "de") else "en",
+            language=language if language in SUPPORTED_LANGUAGES else "en",
             response_format="text",
         )
         text = result if isinstance(result, str) else getattr(result, "text", str(result))
@@ -564,9 +749,11 @@ async def delete_journal_entry(entry_id: str):
 
 @api_router.post("/image/generate", response_model=ImageGenerationResponse)
 async def generate_image(request: ImageGenerationRequest):
-    fallback_prompt = (
-        f"Atmospheric ethereal concept artwork for {request.dominant_mood}: "
-        f"inspired by '{request.user_input[:80]}', cinematic lighting, tranquil cosmic calm, 4k digital art"
+    fallback_prompt = build_scene_prompt(
+        user_input=request.user_input,
+        response_text=request.response_text,
+        dominant_mood=request.dominant_mood,
+        tapestry_prompt=request.tapestry_prompt,
     )
     if image_generation_service is None:
         return ImageGenerationResponse(
@@ -581,6 +768,7 @@ async def generate_image(request: ImageGenerationRequest):
             dominant_mood=request.dominant_mood,
             response_type=request.response_type,
             language=request.language,
+            tapestry_prompt=request.tapestry_prompt,
         )
         return ImageGenerationResponse(
             generated=True,

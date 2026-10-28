@@ -43,7 +43,108 @@ AFFECT_MAP = {
     "exhaustion": {"valence": -0.50, "arousal": 0.20, "quadrant": "Fatigue / Melancholy"},
     "pride": {"valence": 0.75, "arousal": 0.60, "quadrant": "Eustress / High Joy"},
     "warmth": {"valence": 0.80, "arousal": 0.35, "quadrant": "Serenity / Calm Glow"},
+    "fear": {"valence": -0.72, "arousal": 0.84, "quadrant": "Distress / High Tension"},
+    "surprise": {"valence": 0.35, "arousal": 0.78, "quadrant": "Eustress / High Joy"},
+    "disgust": {"valence": -0.66, "arousal": 0.55, "quadrant": "Distress / High Tension"},
+    "neutral": {"valence": 0.05, "arousal": 0.22, "quadrant": "Serenity / Calm Glow"},
 }
+
+CANONICAL_EMOTIONS = ("joy", "sadness", "anger", "fear", "surprise", "disgust", "neutral")
+
+EMOTION_ALIASES = {
+    "joy": "joy",
+    "happiness": "joy",
+    "happy": "joy",
+    "joyful": "joy",
+    "hopeful": "joy",
+    "hope": "joy",
+    "excitement": "joy",
+    "pride": "joy",
+    "warmth": "joy",
+    "sadness": "sadness",
+    "sad": "sadness",
+    "melancholy": "sadness",
+    "grief": "sadness",
+    "anger": "anger",
+    "angry": "anger",
+    "frustration": "anger",
+    "rage": "anger",
+    "fear": "fear",
+    "anxiety": "fear",
+    "stress": "fear",
+    "stressed": "fear",
+    "overwhelm": "fear",
+    "worry": "fear",
+    "surprise": "surprise",
+    "curiosity": "surprise",
+    "curious": "surprise",
+    "wonder": "surprise",
+    "disgust": "disgust",
+    "disgusted": "disgust",
+    "contempt": "disgust",
+    "neutral": "neutral",
+    "calm": "neutral",
+    "calmness": "neutral",
+    "peace": "neutral",
+    "reflective": "neutral",
+    "stillness": "neutral",
+    "fatigue": "neutral",
+    "exhaustion": "neutral",
+}
+
+
+def canonicalize_emotions(raw_emotions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    totals = {name: 0.0 for name in CANONICAL_EMOTIONS}
+    for item in raw_emotions or []:
+        if not isinstance(item, dict):
+            continue
+        key = str(item.get("emotion", "")).strip().lower()
+        canonical = EMOTION_ALIASES.get(key)
+        if not canonical:
+            continue
+        try:
+            score = float(item.get("score", 0.0))
+        except (TypeError, ValueError):
+            score = 0.0
+        totals[canonical] += max(0.0, min(1.0, score))
+
+    if sum(totals.values()) <= 0:
+        totals["neutral"] = 1.0
+
+    peak = max(totals.values()) or 1.0
+    if peak > 1:
+        totals = {name: value / peak for name, value in totals.items()}
+
+    return [
+        {"emotion": name, "score": round(max(0.0, min(1.0, totals[name])), 4)}
+        for name in CANONICAL_EMOTIONS
+    ]
+
+
+def shape_poem(text: str) -> str:
+    """Keep the reflection as two stanzas of four short lines."""
+    cleaned = (text or "").replace("**", "").replace("__", "").strip()
+    cleaned = re.sub(r"^(poem|reflection)\s*:\s*", "", cleaned, flags=re.IGNORECASE)
+    lines = []
+    for raw in cleaned.splitlines():
+        line = raw.strip().strip('"').strip("“”")
+        line = re.sub(r"^(?:\d+[\.\)]\s*|[-*•]\s*)", "", line).strip()
+        if line:
+            lines.append(line)
+
+    if len(lines) == 1:
+        parts = [part.strip() for part in re.split(r"(?<=[.!?])\s+", lines[0]) if part.strip()]
+        if len(parts) >= 8:
+            lines = parts
+
+    if len(lines) >= 8:
+        lines = lines[:8]
+        return "\n".join(lines[:4]) + "\n\n" + "\n".join(lines[4:8])
+
+    if len(lines) > 4:
+        return "\n".join(lines[:4]) + "\n\n" + "\n".join(lines[4:])
+
+    return "\n".join(lines)
 
 
 class GroqService:
@@ -299,37 +400,28 @@ class GroqService:
             items.append({"emotion": match.group(1).strip(), "score": score})
 
         if items:
-            return items
+            return canonicalize_emotions(items)
 
-        return [
-            {"emotion": "calmness", "score": 0.4},
-            {"emotion": "reflective", "score": 0.3},
-            {"emotion": "hopeful", "score": 0.2},
-            {"emotion": "curiosity", "score": 0.1},
-        ]
+        return canonicalize_emotions([{"emotion": "neutral", "score": 1.0}])
 
     def _normalize_result(self, parsed: Dict[str, Any]) -> Dict[str, Any]:
         emotions = parsed.get("emotions")
         if not isinstance(emotions, list) or not emotions:
             emotions = self._extract_emotions(json.dumps(parsed, ensure_ascii=False))
 
-        normalized_emotions: List[Dict[str, Any]] = []
-        for item in emotions:
-            if not isinstance(item, dict):
-                continue
-            emotion = str(item.get("emotion", "calmness")).strip().lower() or "calmness"
-            try:
-                score = float(item.get("score", 0.0))
-            except (TypeError, ValueError):
-                score = 0.0
-            normalized_emotions.append({"emotion": emotion, "score": max(0.0, min(1.0, score))})
-
-        if not normalized_emotions:
+        normalized_emotions = canonicalize_emotions(
+            [item for item in emotions if isinstance(item, dict)]
+        )
+        if not any(item["score"] > 0 for item in normalized_emotions):
             normalized_emotions = self._extract_emotions("{}")
 
-        dominant_mood = str(parsed.get("dominant_mood", normalized_emotions[0]["emotion"])).lower()
-        response_type = str(parsed.get("response_type", "reflection"))
-        response_text = str(parsed.get("response_text", "I hear you. Thank you for sharing how you feel."))
+        scored = max(normalized_emotions, key=lambda item: item["score"])
+        requested = EMOTION_ALIASES.get(str(parsed.get("dominant_mood", "")).strip().lower(), "")
+        dominant_mood = requested if requested in CANONICAL_EMOTIONS else scored["emotion"]
+        response_type = "poem"
+        response_text = shape_poem(
+            str(parsed.get("response_text", "I hear you. Thank you for sharing how you feel."))
+        )
 
         # Extract or Derive 2D Russell Circumplex Affect Coordinates
         affect_defaults = AFFECT_MAP.get(dominant_mood, {"valence": 0.5, "arousal": 0.4, "quadrant": "Serenity / Calm Glow"})
@@ -367,7 +459,7 @@ class GroqService:
             subconscious_insight = str(alignment_raw.get("subconscious_insight", f"{dominant_mood.capitalize()} with underlying subtle complexity"))
         else:
             # Derive based on dominant mood & emotion mix
-            if dominant_mood in ("stress", "anxiety", "overwhelm", "exhaustion", "fatigue"):
+            if dominant_mood in ("fear", "anger", "disgust", "stress", "anxiety", "overwhelm", "exhaustion", "fatigue"):
                 words_align = 68
                 voice_align = 84
                 visual_align = 87
@@ -417,7 +509,7 @@ class GroqService:
             affirmation = str(cbt_raw.get("grounding_affirmation", "You are permitted to pause and breathe. You are enough in this moment."))
         else:
             # Generate compassionate CBT default tailored to dominant mood
-            if dominant_mood in ("stress", "anxiety", "anger", "overwhelm"):
+            if dominant_mood in ("fear", "anger", "disgust", "stress", "anxiety", "overwhelm"):
                 distortion = "Catastrophizing & Urgency Pressure"
                 explanation = "Your mind is projecting forward into worst-case scenarios, amplifying internal tension."
                 prompts = [
@@ -453,7 +545,12 @@ class GroqService:
         }
 
         # Tapestry Prompt for Generative Art
-        tapestry_prompt = str(parsed.get("tapestry_prompt", f"A breathtaking cinematic surreal landscape capturing {dominant_mood}, ethereal atmospheric lighting, luminous bioluminescent calm, 4k digital art masterpiece"))
+        tapestry_prompt = str(
+            parsed.get(
+                "tapestry_prompt",
+                f"A funny optimistic illustration of the exact situation the person described, feeling {dominant_mood}, specific objects and place included, no text",
+            )
+        )
 
         fusion_alignment = parsed.get("fusion_alignment")
 

@@ -2,18 +2,23 @@ import React from "react";
 import { motion } from "framer-motion";
 
 const MOOD_COLORS = {
+  joy: "#FCD34D",
   happiness: "#FCD34D",
   happy: "#FCD34D",
   sadness: "#60A5FA",
   sad: "#60A5FA",
   anger: "#F87171",
   angry: "#F87171",
-  calmness: "#34D399",
-  calm: "#34D399",
-  stress: "#F97316",
-  stressed: "#F97316",
-  curiosity: "#C084FC",
-  curious: "#C084FC",
+  fear: "#C084FC",
+  surprise: "#FB923C",
+  disgust: "#34D399",
+  neutral: "#A1A1AA",
+  calmness: "#A1A1AA",
+  calm: "#A1A1AA",
+  stress: "#C084FC",
+  stressed: "#C084FC",
+  curiosity: "#FB923C",
+  curious: "#FB923C",
 };
 
 const getOrbColor = (mood) => {

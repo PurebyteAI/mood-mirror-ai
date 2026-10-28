@@ -1,16 +1,22 @@
 import React, { useState } from "react";
-import { Moon, Shield, Sliders, Download, Trash2, Check, Sparkles } from "lucide-react";
+import { Moon, Sun, Heart, Shield, Download, Trash2, Sparkles } from "lucide-react";
+import { useTheme } from "next-themes";
 import { API_BASE } from "@/lib/api";
 import axios from "axios";
+import { APPEARANCES, REFLECTION_STYLES, getReflectionStyle, setReflectionStyle } from "@/lib/preferences";
+import { LanguageSwitcher } from "@/components/mood/LanguageSwitcher";
+
+const APPEARANCE_ICONS = { dark: Moon, light: Sun, romantic: Heart };
 
 export const SettingsPage = ({ t, language, onLanguageChange }) => {
-  const [reflectionTone, setReflectionTone] = useState("poetic");
-  const [motionReduced, setMotionReduced] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const appearance = theme === "light" || theme === "romantic" ? theme : "dark";
+  const [reflectionTone, setReflectionTone] = useState(getReflectionStyle);
   const [dataCleared, setDataCleared] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   const clearAllHistory = async () => {
-    if (!window.confirm("Are you sure you want to clear your reflection history? This cannot be undone.")) {
+    if (!window.confirm(t("clearHistoryConfirm"))) {
       return;
     }
     try {
@@ -60,93 +66,97 @@ export const SettingsPage = ({ t, language, onLanguageChange }) => {
         <h2 className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight">
           {t("settingsTitle")}
         </h2>
-        <p className="text-sm text-white/60 mt-1">
-          Manage your personal sanctuary preferences, AI reflection styles, and privacy.
+        <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+          {t("settingsIntro")}
         </p>
       </div>
 
       {/* 1. Appearance & Theme */}
       <section
-        className="p-6 rounded-3xl border border-white/[0.08]"
-        style={{
-          background: "linear-gradient(160deg, rgba(12, 23, 48, 0.8), rgba(7, 17, 38, 0.95))",
-        }}
+        className="glass-card p-6"
       >
         <div className="flex items-center gap-2.5 mb-4">
           <Moon size={18} className="text-violet-400" />
           <h3 className="font-display text-lg font-semibold text-white">{t("settingsAppearance")}</h3>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">
-          <div>
-            <p className="text-sm font-medium text-white">Atmosphere</p>
-            <p className="text-xs text-white/50">Cosmic Celestial Dark Glassmorphism with harmonic living particles.</p>
-          </div>
-
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.06] border border-white/[0.12] text-xs font-semibold text-violet-300">
-            <Moon size={13} className="text-violet-400" />
-            <span>Dark Cosmic Sanctuary</span>
-          </div>
+        <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+          {t("appearanceHint")}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" data-testid="appearance-picker">
+          {APPEARANCES.map((option) => {
+            const Icon = APPEARANCE_ICONS[option.id];
+            const selected = appearance === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                data-testid={`appearance-${option.id}`}
+                onClick={() => setTheme(option.id)}
+                className="text-left p-4 rounded-2xl transition-all"
+                style={{
+                  background: selected ? "var(--chip-active-bg)" : "var(--control-bg)",
+                  border: selected ? "1px solid var(--aura-violet)" : "1px solid var(--border-subtle)",
+                  color: "var(--text-primary)",
+                }}
+              >
+                <Icon size={16} style={{ color: option.id === "romantic" ? "var(--aura-rose)" : "var(--aura-violet)" }} />
+                <p className="text-sm font-semibold mt-2">{t(`appearance_${option.id}`)}</p>
+                <p className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>{t(`appearance_${option.id}_hint`)}</p>
+              </button>
+            );
+          })}
         </div>
       </section>
 
       {/* 2. AI Reflection Style & Tone */}
       <section
-        className="p-6 rounded-3xl border border-white/[0.08]"
-        style={{
-          background: "linear-gradient(160deg, rgba(12, 23, 48, 0.8), rgba(7, 17, 38, 0.95))",
-        }}
+        className="glass-card p-6"
       >
         <div className="flex items-center gap-2.5 mb-4">
           <Sparkles size={18} className="text-violet-400" />
-          <h3 className="font-display text-lg font-semibold text-white">AI Reflection Style</h3>
+          <h3 className="font-display text-lg font-semibold text-white">{t("reflectionStyleTitle")}</h3>
         </div>
 
         <div className="space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-white">Reflection Language</p>
-              <p className="text-xs text-white/50">Language used for prompt analysis and AI voice reflections.</p>
+              <p className="text-sm font-medium text-white">{t("reflectionLanguage")}</p>
+              <p className="text-xs text-white/50">{t("reflectionLanguageHint")}</p>
             </div>
-            <div className="inline-flex p-1 rounded-full bg-white/[0.04] border border-white/[0.08]">
-              {["en", "de"].map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => onLanguageChange(lang)}
-                  className="px-4 py-1.5 rounded-full text-xs font-mono font-semibold uppercase transition-all"
-                  style={{
-                    background: language === lang ? "rgba(155, 108, 255, 0.25)" : "transparent",
-                    color: language === lang ? "#F7F7FF" : "var(--text-muted)",
-                  }}
-                >
-                  {lang}
-                </button>
-              ))}
-            </div>
+            <LanguageSwitcher
+              language={language}
+              onChange={onLanguageChange}
+              label={t("settingsLanguage")}
+              variant="pills"
+              testId="settings-language-switcher"
+            />
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-3 border-t border-white/[0.06]">
             <div>
-              <p className="text-sm font-medium text-white">Reflection Tone</p>
-              <p className="text-xs text-white/50">Choose the emotional style of AI mirror responses.</p>
+              <p className="text-sm font-medium text-white">{t("reflectionTone")}</p>
+              <p className="text-xs text-white/50">{t("reflectionToneHint")}</p>
             </div>
-            <div className="flex items-center gap-2">
-              {[
-                { id: "poetic", label: "Poetic & Warm" },
-                { id: "grounding", label: "Grounding" },
-                { id: "lighthearted", label: "Lighthearted" },
-              ].map((tone) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full md:max-w-xl" data-testid="reflection-style-picker">
+              {REFLECTION_STYLES.map((tone) => (
                 <button
                   key={tone.id}
-                  onClick={() => setReflectionTone(tone.id)}
-                  className="px-3.5 py-1.5 rounded-full text-xs font-medium transition-all"
+                  type="button"
+                  data-testid={`style-${tone.id}`}
+                  onClick={() => {
+                    setReflectionTone(tone.id);
+                    setReflectionStyle(tone.id);
+                  }}
+                  className="text-left px-3.5 py-2 rounded-2xl text-xs transition-all"
                   style={{
-                    background: reflectionTone === tone.id ? "rgba(155, 108, 255, 0.22)" : "rgba(255, 255, 255, 0.03)",
-                    border: reflectionTone === tone.id ? "1px solid rgba(155, 108, 255, 0.45)" : "1px solid rgba(255, 255, 255, 0.08)",
-                    color: reflectionTone === tone.id ? "#F7F7FF" : "var(--text-muted)",
+                    background: reflectionTone === tone.id ? "var(--chip-active-bg)" : "var(--control-bg)",
+                    border: reflectionTone === tone.id ? "1px solid var(--aura-violet)" : "1px solid var(--border-subtle)",
+                    color: reflectionTone === tone.id ? "var(--text-primary)" : "var(--text-secondary)",
                   }}
                 >
-                  {tone.label}
+                  <span className="block font-semibold">{t(`style_${tone.id}`)}</span>
+                  <span className="block mt-0.5" style={{ color: "var(--text-muted)" }}>{t(`style_${tone.id}_hint`)}</span>
                 </button>
               ))}
             </div>
@@ -156,10 +166,7 @@ export const SettingsPage = ({ t, language, onLanguageChange }) => {
 
       {/* 3. Privacy, Data & Export */}
       <section
-        className="p-6 rounded-3xl border border-white/[0.08]"
-        style={{
-          background: "linear-gradient(160deg, rgba(12, 23, 48, 0.8), rgba(7, 17, 38, 0.95))",
-        }}
+        className="glass-card p-6"
       >
         <div className="flex items-center gap-2.5 mb-4">
           <Shield size={18} className="text-emerald-400" />
@@ -177,7 +184,7 @@ export const SettingsPage = ({ t, language, onLanguageChange }) => {
             className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium bg-white/[0.05] border border-white/10 hover:bg-white/10 text-white transition-all"
           >
             <Download size={14} />
-            <span>{exporting ? "Exporting..." : "Export Reflections (JSON)"}</span>
+            <span>{exporting ? t("exporting") : t("exportReflections")}</span>
           </button>
 
           <button
@@ -185,7 +192,7 @@ export const SettingsPage = ({ t, language, onLanguageChange }) => {
             className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium bg-red-500/10 border border-red-500/20 text-red-300 hover:bg-red-500/20 transition-all ml-auto"
           >
             <Trash2 size={14} />
-            <span>{dataCleared ? "History Cleared" : "Clear Reflection History"}</span>
+            <span>{dataCleared ? t("historyCleared") : t("clearHistory")}</span>
           </button>
         </div>
       </section>

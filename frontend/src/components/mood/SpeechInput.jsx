@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Mic, MicOff, Loader2, Sparkles, User, Heart, Clock, ShieldCheck, ArrowRight } from "lucide-react";
 import axios from "axios";
 import { API_BASE } from "@/lib/api";
+import { isSupportedLanguage } from "@/lib/languages";
 
 const ReactiveWaveform = ({ isRecording, analyserRef }) => {
   const canvasRef = useRef(null);
@@ -130,7 +131,7 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
     try {
       const formData = new FormData();
       formData.append("file", blob, "recording.webm");
-      formData.append("language", language === "de" ? "de" : "en");
+      formData.append("language", isSupportedLanguage(language) ? language : "en");
       const res = await axios.post(`${API_BASE}/transcribe`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });

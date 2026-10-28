@@ -16,10 +16,10 @@ import { API_BASE } from "@/lib/api";
 import axios from "axios";
 
 const CATEGORIES = [
-  { id: "all", label: "All Reflections", icon: Star },
-  { id: "calm", label: "Moments of Calm", icon: Heart },
-  { id: "letters", label: "Future Letters", icon: BookOpen },
-  { id: "insights", label: "Key Reflections", icon: Sparkles },
+  { id: "all", labelKey: "journalAll", icon: Star },
+  { id: "calm", labelKey: "journalCalm", icon: Heart },
+  { id: "letters", labelKey: "journalLetters", icon: BookOpen },
+  { id: "insights", labelKey: "journalInsights", icon: Sparkles },
 ];
 
 const JournalPage = ({ onBack, t, embedded = false }) => {
@@ -64,8 +64,7 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
     if (!matchesSearch) return false;
     if (activeCategory === "calm") {
       return (
-        entry.dominant_mood?.toLowerCase() === "calmness" ||
-        entry.dominant_mood?.toLowerCase() === "calm"
+        ["neutral", "calmness", "calm", "joy"].includes(entry.dominant_mood?.toLowerCase())
       );
     }
     if (activeCategory === "letters") {
@@ -111,7 +110,7 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search saved reflections..."
+            placeholder={t("searchJournal")}
             className="w-full bg-transparent outline-none text-xs text-white placeholder-white/40"
           />
         </div>
@@ -134,7 +133,7 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
               }}
             >
               <Icon size={14} className={active ? "text-violet-400" : "text-white/40"} />
-              <span>{cat.label}</span>
+              <span>{t(cat.labelKey)}</span>
             </button>
           );
         })}
@@ -203,7 +202,7 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
                       deleteEntry(entry.id);
                     }}
                     className="p-1.5 rounded-full text-white/30 hover:text-red-400 transition-colors"
-                    title="Remove from Collections"
+                    title={t("removeFromCollections")}
                   >
                     <Trash2 size={14} />
                   </button>

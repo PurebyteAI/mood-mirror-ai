@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from server import app, make_fallback, build_text_prompt, build_drawing_prompt
+from services.image_generation_service import build_scene_prompt
 
 client = TestClient(app)
 
@@ -12,18 +13,48 @@ def test_health_endpoint():
     assert data["service"] == "mood-mirror-ai"
 
 def test_fallback_structure():
-    fallback = make_fallback()
-    assert fallback["dominant_mood"] in ["calmness", "reflective", "hopeful", "curiosity", "happiness", "stress", "sadness"]
-    assert len(fallback["emotions"]) > 0
-    assert len(fallback["response_text"]) > 20
+    fallback = make_fallback(content="I spilled coffee on the train")
+    assert fallback["dominant_mood"] in {"joy", "sadness", "anger", "fear", "surprise", "disgust", "neutral"}
+    names = [item["emotion"] for item in fallback["emotions"]]
+    assert names == ["joy", "sadness", "anger", "fear", "surprise", "disgust", "neutral"]
+    lines = [line for line in fallback["response_text"].splitlines() if line.strip()]
+    assert len(lines) == 8
+    assert "coffee" in fallback["response_text"]
+    assert "coffee" in fallback["tapestry_prompt"]
 
 def test_prompts_are_non_clinical():
-    prompt_en = build_text_prompt("text", "Feeling overwhelmed with work", "Respond in English")
-    assert "Never use clinical terminology" in prompt_en
-    assert "60-120 words" in prompt_en
+    prompt_en = build_text_prompt("text", "Feeling overwhelmed with work", "Respond in English", "animals")
+    assert "Never use cold clinical terminology" in prompt_en
+    assert "two stanzas" in prompt_en
+    assert "joy, sadness, anger, fear, surprise, disgust, neutral" in prompt_en
+    assert "original animals" in prompt_en
 
     drawing_prompt = build_drawing_prompt("Respond in English")
-    assert "visual language of a drawing" in drawing_prompt
+    assert "hand-drawn" in drawing_prompt
+
+def test_image_prompt_uses_the_input():
+    prompt = build_scene_prompt(
+        user_input="I missed the last tram and ate cold pizza on the curb",
+        response_text="A poem about pizza",
+        dominant_mood="surprise",
+        tapestry_prompt="ignore this if the input is usable",
+    )
+    assert "cold pizza" in prompt
+    assert "last tram" in prompt
+    assert "generic ocean" in prompt
+
+def test_new_languages_shape_the_poem_and_fallback():
+    from server import LANG_INSTRUCTIONS, SUPPORTED_LANGUAGES
+    assert SUPPORTED_LANGUAGES == {"en", "de", "fr", "it", "es", "zh"}
+    for code in ("fr", "it", "es", "zh"):
+        prompt = build_text_prompt("text", "the missed tram", LANG_INSTRUCTIONS[code], "warm")
+        assert "JSON" in prompt or "json" in prompt.lower()
+    french = make_fallback(content="pizza froide", language="fr")
+    assert "pizza froide" in french["response_text"]
+    assert "miroir" in french["response_text"]
+    mandarin = make_fallback(content="冷披萨", language="zh")
+    assert "冷披萨" in mandarin["response_text"]
+    assert "镜子" in mandarin["response_text"]
 
 def test_analyze_endpoint_fallback():
     # Test analyze endpoint with valid payload

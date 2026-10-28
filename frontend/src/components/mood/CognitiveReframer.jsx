@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain, Sparkles, ChevronRight, CheckCircle2, HeartHandshake, Compass } from "lucide-react";
 
-export const CognitiveReframer = ({ cognitiveData }) => {
+export const CognitiveReframer = ({ cognitiveData, t = (key) => key }) => {
   const [activePromptIdx, setActivePromptIdx] = useState(0);
 
   if (!cognitiveData) return null;
@@ -20,9 +20,9 @@ export const CognitiveReframer = ({ cognitiveData }) => {
       data-testid="cognitive-reframer-card"
       className="rounded-3xl p-5 sm:p-6 backdrop-blur-2xl transition-all space-y-4 scroll-mt-6"
       style={{
-        background: "linear-gradient(160deg, rgba(17, 29, 57, 0.75) 0%, rgba(7, 17, 38, 0.95) 100%)",
-        border: "1px solid rgba(102, 183, 255, 0.25)",
-        boxShadow: "0 16px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(102, 183, 255, 0.1)",
+        background: "var(--card-glass-bg)",
+        border: "1px solid var(--card-glass-border)",
+        boxShadow: "var(--card-glass-shadow)",
       }}
     >
       {/* Top Header */}
@@ -33,13 +33,13 @@ export const CognitiveReframer = ({ cognitiveData }) => {
           </div>
           <div>
             <h4 className="font-display text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
-              <span>Cognitive Reframing</span>
+              <span>{t("reframeTitle")}</span>
               <span className="text-[10px] font-mono font-semibold uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                CBT Insight
+                {t("reframeBadge")}
               </span>
             </h4>
             <p className="text-[11px] text-white/50">
-              Gentle psychological perspective shifts to unhook from cognitive overload.
+              {t("reframeHint")}
             </p>
           </div>
         </div>
@@ -56,7 +56,7 @@ export const CognitiveReframer = ({ cognitiveData }) => {
         className="p-3.5 rounded-2xl text-xs leading-relaxed text-white/80 border border-white/5"
         style={{ background: "rgba(0, 0, 0, 0.25)" }}
       >
-        <span className="font-semibold text-blue-300">Mind Pattern: </span>
+        <span className="font-semibold text-blue-300">{t("mindPattern")}: </span>
         <span>{explanation}</span>
       </div>
 
@@ -64,7 +64,7 @@ export const CognitiveReframer = ({ cognitiveData }) => {
       {reframing_prompts.length > 0 && (
         <div className="space-y-2.5 pt-1">
           <span className="text-xs font-mono font-semibold uppercase text-blue-300 tracking-wider block">
-            Gentle Perspective Shift Inquiries
+            {t("reframeInquiries")}
           </span>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -82,7 +82,7 @@ export const CognitiveReframer = ({ cognitiveData }) => {
                 >
                   <div className="flex items-center justify-between w-full">
                     <span className="text-[10px] font-mono font-semibold text-blue-400">
-                      Prompt 0{idx + 1}
+                      {t("reframePrompt")} 0{idx + 1}
                     </span>
                     {isActive && <CheckCircle2 size={12} className="text-blue-300" />}
                   </div>
@@ -106,7 +106,7 @@ export const CognitiveReframer = ({ cognitiveData }) => {
         <Sparkles size={16} className="text-violet-300 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <span className="text-[10px] font-mono uppercase font-bold text-violet-300 block">
-            Grounding Anchor
+            {t("groundingAnchor")}
           </span>
           <p className="text-xs sm:text-sm font-medium text-white/90 leading-relaxed italic">
             "{grounding_affirmation}"

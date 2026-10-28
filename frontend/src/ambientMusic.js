@@ -133,7 +133,13 @@ class AmbientMusicEngine {
       },
     };
 
-    return configs[mood?.toLowerCase()] || configs.calmness;
+    configs.joy = configs.happiness;
+    configs.fear = configs.stress;
+    configs.surprise = configs.curiosity;
+    configs.disgust = configs.anger;
+    configs.neutral = configs.calmness;
+
+    return configs[mood?.toLowerCase()] || configs.neutral;
   }
 
   // Gracefully stop all current oscillators

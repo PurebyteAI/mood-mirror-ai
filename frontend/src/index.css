@@ -81,6 +81,12 @@ html {
   --card-glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 40px rgba(155, 108, 255, 0.12);
   --sidebar-bg: rgba(2, 8, 23, 0.90);
   --sidebar-border: rgba(255, 255, 255, 0.08);
+  --poem-paper: linear-gradient(180deg, rgba(28, 22, 48, 0.96) 0%, rgba(12, 16, 36, 0.98) 100%);
+  --poem-ink: #f6f1e8;
+  --poem-muted: #b3a7c4;
+  --poem-border: rgba(155, 108, 255, 0.32);
+  --poem-shadow: 0 14px 32px rgba(0, 0, 0, 0.38);
+  --poem-mark: none;
 }
 
 
@@ -346,5 +352,214 @@ h1, h2, h3, h4 {
   .btn-mirror-me:hover { 
     animation: none;
     transform: none !important;
+  }
+}
+
+html.light {
+  color-scheme: light;
+  --bg-base: #f7f4ef;
+  --bg-secondary: #fffdf9;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-surface-soft: rgba(48, 32, 72, 0.05);
+  --bg-elevated-soft: rgba(255, 255, 255, 0.9);
+  --text-primary: #241c33;
+  --text-secondary: #4d4560;
+  --text-muted: #6d657c;
+  --border-subtle: rgba(48, 32, 72, 0.12);
+  --border-highlight: rgba(124, 92, 196, 0.35);
+  --divider-subtle: rgba(48, 32, 72, 0.1);
+  --chip-bg: rgba(48, 32, 72, 0.04);
+  --chip-active-bg: rgba(124, 92, 196, 0.16);
+  --card-hover-bg: rgba(48, 32, 72, 0.05);
+  --control-bg: rgba(255, 255, 255, 0.72);
+  --control-border: rgba(48, 32, 72, 0.12);
+  --wave-bg: #f7f4ef;
+  --canvas-bg: #fffdf9;
+  --background: 36 33% 96%;
+  --foreground: 270 24% 16%;
+  --card: 36 33% 99%;
+  --card-foreground: 270 24% 16%;
+  --popover: 36 33% 99%;
+  --popover-foreground: 270 24% 16%;
+  --muted: 36 20% 92%;
+  --muted-foreground: 270 10% 40%;
+  --border: 270 12% 82%;
+  --input: 270 12% 82%;
+  --page-gradient:
+    radial-gradient(circle at 50% 20%, rgba(155, 108, 255, 0.12), transparent 46%),
+    radial-gradient(circle at 80% 70%, rgba(255, 179, 156, 0.18), transparent 40%),
+    #f7f4ef;
+  --card-glass-bg: linear-gradient(170deg, rgba(255, 253, 249, 0.94), rgba(247, 244, 239, 0.96));
+  --card-glass-border: rgba(48, 32, 72, 0.1);
+  --card-glass-shadow: 0 12px 32px rgba(70, 50, 90, 0.08);
+  --sidebar-bg: rgba(255, 252, 248, 0.92);
+  --sidebar-border: rgba(48, 32, 72, 0.1);
+  --mirror-sphere-text: #241c33;
+  --mirror-sphere-subtext: rgba(36, 28, 51, 0.65);
+  --poem-paper: linear-gradient(180deg, #fffdf8 0%, #f6f1e8 100%);
+  --poem-ink: #2a241c;
+  --poem-muted: #8a7560;
+  --poem-border: #e4d5c4;
+  --poem-shadow: 0 10px 24px rgba(70, 48, 20, 0.1);
+  --poem-mark: none;
+}
+
+html.romantic {
+  color-scheme: light;
+  --bg-base: #fff5f8;
+  --bg-secondary: #ffe9f1;
+  --bg-surface: #fffafc;
+  --bg-elevated: #ffffff;
+  --bg-surface-soft: rgba(180, 60, 100, 0.08);
+  --bg-elevated-soft: rgba(255, 255, 255, 0.88);
+  --text-primary: #4c2036;
+  --text-secondary: #7a4460;
+  --text-muted: #a06a84;
+  --border-subtle: rgba(180, 60, 110, 0.16);
+  --border-highlight: rgba(228, 91, 138, 0.45);
+  --divider-subtle: rgba(180, 60, 110, 0.12);
+  --chip-bg: rgba(228, 91, 138, 0.08);
+  --chip-active-bg: rgba(228, 91, 138, 0.18);
+  --control-bg: rgba(255, 255, 255, 0.66);
+  --control-border: rgba(180, 60, 110, 0.18);
+  --wave-bg: #fff5f8;
+  --canvas-bg: #fffafc;
+  --aura-violet: #d94680;
+  --aura-rose: #e11d68;
+  --aura-peach: #fb7185;
+  --background: 340 100% 98%;
+  --foreground: 338 40% 22%;
+  --card: 340 100% 99%;
+  --card-foreground: 338 40% 22%;
+  --primary: 338 72% 56%;
+  --border: 338 30% 84%;
+  --input: 338 30% 84%;
+  --ring: 338 72% 56%;
+  --page-gradient:
+    radial-gradient(circle at 20% 15%, rgba(251, 113, 133, 0.28), transparent 42%),
+    radial-gradient(circle at 80% 30%, rgba(244, 114, 182, 0.22), transparent 40%),
+    radial-gradient(circle at 50% 90%, rgba(253, 164, 175, 0.25), transparent 46%),
+    #fff1f5;
+  --gradient-primary: linear-gradient(135deg, #f472b6 0%, #fb7185 55%, #fda4af 100%);
+  --gradient-aura: linear-gradient(135deg, #f472b6 0%, #fb7185 55%, #fda4af 100%);
+  --card-glass-bg: linear-gradient(170deg, rgba(255, 255, 255, 0.9), rgba(255, 228, 238, 0.94));
+  --card-glass-border: rgba(225, 29, 104, 0.16);
+  --card-glass-shadow: 0 12px 32px rgba(190, 40, 90, 0.1);
+  --sidebar-bg: rgba(255, 241, 246, 0.94);
+  --sidebar-border: rgba(225, 29, 104, 0.14);
+  --mirror-sphere-text: #4c2036;
+  --mirror-sphere-subtext: rgba(76, 32, 54, 0.65);
+  --poem-paper: linear-gradient(180deg, #fff5f8 0%, #ffd6e4 100%);
+  --poem-ink: #5c2340;
+  --poem-muted: #b05a7c;
+  --poem-border: rgba(225, 29, 104, 0.28);
+  --poem-shadow: 0 12px 28px rgba(190, 40, 90, 0.14);
+  --poem-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Ctext x='8' y='36' font-size='22' fill='%23e11d68' fill-opacity='0.18'%3E%E2%99%A5%3C/text%3E%3Ctext x='62' y='92' font-size='16' fill='%23f472b6' fill-opacity='0.22'%3E%E2%99%A5%3C/text%3E%3C/svg%3E");
+}
+
+html.light .text-white,
+html.romantic .text-white,
+html.light .text-white\/95,
+html.romantic .text-white\/95,
+html.light .text-white\/90,
+html.romantic .text-white\/90,
+html.light .text-white\/80,
+html.romantic .text-white\/80 {
+  color: var(--text-primary);
+}
+
+html.light .text-white\/70,
+html.romantic .text-white\/70,
+html.light .text-white\/60,
+html.romantic .text-white\/60,
+html.light .text-white\/50,
+html.romantic .text-white\/50 {
+  color: var(--text-secondary);
+}
+
+html.light .text-white\/40,
+html.romantic .text-white\/40,
+html.light .text-white\/30,
+html.romantic .text-white\/30 {
+  color: var(--text-muted);
+}
+
+html.light .on-fill,
+html.romantic .on-fill,
+html.light .btn-mirror-me,
+html.romantic .btn-mirror-me {
+  color: #ffffff;
+}
+
+.result-print-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(170px, 230px) minmax(220px, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.poem-slip {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  align-self: start;
+  background: var(--poem-paper);
+  color: var(--poem-ink);
+  border: 1px solid var(--poem-border);
+  border-radius: 18px;
+  padding: 1.15rem 1.05rem 1.2rem;
+  box-shadow: var(--poem-shadow);
+  overflow: hidden;
+}
+
+.poem-slip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--poem-mark);
+  background-size: 120px 120px;
+  opacity: 1;
+}
+
+.poem-slip > * {
+  position: relative;
+  z-index: 1;
+}
+
+.poem-slip-label {
+  color: var(--poem-muted);
+}
+
+.poem-slip-text {
+  font-family: "Playfair Display", serif;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  white-space: pre-line;
+  color: var(--poem-ink);
+}
+
+.romantic-hearts {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Ctext x='16' y='46' font-size='28' fill='%23e11d68' fill-opacity='0.28'%3E%E2%99%A5%3C/text%3E%3Ctext x='132' y='118' font-size='18' fill='%23f472b6' fill-opacity='0.4'%3E%E2%99%A5%3C/text%3E%3Ctext x='64' y='188' font-size='22' fill='%23fb7185' fill-opacity='0.32'%3E%E2%99%A5%3C/text%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+.reframer-flash {
+  animation: reframer-flash 1.4s ease;
+}
+
+@keyframes reframer-flash {
+  0%, 100% { box-shadow: var(--card-glass-shadow); }
+  35% { box-shadow: 0 0 0 3px var(--aura-violet); }
+}
+
+@media (max-width: 1024px) {
+  .result-print-row {
+    grid-template-columns: 1fr;
   }
 }

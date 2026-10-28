@@ -14,6 +14,37 @@ class ImageGenerationError(Exception):
     pass
 
 
+def _usable_scene(*candidates: str) -> str:
+    for candidate in candidates:
+        cleaned = " ".join((candidate or "").split()).strip()
+        if not cleaned:
+            continue
+        if cleaned.startswith("data:") or cleaned.startswith("[Drawing]") or cleaned.startswith("[Fusion"):
+            continue
+        return cleaned[:360]
+    return ""
+
+
+def build_scene_prompt(
+    user_input: str,
+    response_text: str = "",
+    dominant_mood: str = "joy",
+    tapestry_prompt: str = "",
+    response_type: str = "poem",
+    language: str = "en",
+) -> str:
+    scene = _usable_scene(user_input, tapestry_prompt, response_text)
+    if not scene:
+        scene = f"a person feeling {dominant_mood or 'joy'} in a small everyday moment they just described"
+    return (
+        "A single funny, optimistic illustration of this exact moment. "
+        "No text, no letters, no watermark, no logo. "
+        f"Depict the specific people, objects, places, and actions in these words: {scene}. "
+        f"Emotional tone: {dominant_mood or 'joy'}, bright and kind, with a visual joke that still feels hopeful. "
+        "Stay literal to those words. Do not replace the scene with a generic ocean, galaxy, aurora, or abstract landscape."
+    )
+
+
 class ImageGenerationService:
     def __init__(self) -> None:
         self.cf_account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "ac118124b02ed877ef2cb9a4f609100f").strip()
@@ -49,11 +80,15 @@ class ImageGenerationService:
         dominant_mood: str,
         response_type: str,
         language: str,
+        tapestry_prompt: str = "",
     ) -> str:
-        return (
-            f"A breathtaking, cinematic surreal landscape artwork capturing the emotion of {dominant_mood}. "
-            f"Atmospheric luminous twilight lighting, gentle bioluminescent aurora glow, serene tranquil horizons, "
-            f"ethereal clouds, dreamy cosmic colors, high-end digital art masterpiece, 4k wallpaper, no text, no watermarks."
+        return build_scene_prompt(
+            user_input=user_input,
+            response_text=response_text,
+            dominant_mood=dominant_mood,
+            tapestry_prompt=tapestry_prompt,
+            response_type=response_type,
+            language=language,
         )
 
     def _format_b64_data_uri(self, raw_b64: str) -> str:
@@ -80,6 +115,7 @@ class ImageGenerationService:
         dominant_mood: str,
         response_type: str,
         language: str = "en",
+        tapestry_prompt: str = "",
     ) -> Dict[str, Optional[str]]:
         prompt = self._build_prompt(
             user_input=user_input,
@@ -87,6 +123,7 @@ class ImageGenerationService:
             dominant_mood=dominant_mood,
             response_type=response_type,
             language=language,
+            tapestry_prompt=tapestry_prompt,
         )
 
         await self._rate_limit()

@@ -178,12 +178,13 @@ class SQLiteStore:
                 {
                     "timestamp": row["timestamp"],
                     "dominant_mood": row["dominant_mood"],
-                    "happiness": emotion_map.get("happiness", 0),
+                    "joy": emotion_map.get("joy", emotion_map.get("happiness", 0)),
                     "sadness": emotion_map.get("sadness", 0),
-                    "stress": emotion_map.get("stress", 0),
-                    "calmness": emotion_map.get("calmness", 0),
                     "anger": emotion_map.get("anger", 0),
-                    "curiosity": emotion_map.get("curiosity", 0),
+                    "fear": emotion_map.get("fear", emotion_map.get("stress", 0)),
+                    "surprise": emotion_map.get("surprise", emotion_map.get("curiosity", 0)),
+                    "disgust": emotion_map.get("disgust", 0),
+                    "neutral": emotion_map.get("neutral", emotion_map.get("calmness", 0)),
                 }
             )
         return trends

@@ -5,23 +5,23 @@ import { X, Wind, Volume2, VolumeX, CheckCircle2 } from "lucide-react";
 const BREATH_MODES = {
   box: {
     id: "box",
-    name: "Box Breathing",
-    description: "4s Inhale · 4s Hold · 4s Exhale · 4s Rest",
+    nameKey: "breathBox",
+    descriptionKey: "breathBoxDesc",
     phases: [
-      { name: "Inhale", duration: 4, text: "Breathe in slowly...", scale: 1.35, color: "#66B7FF" },
-      { name: "Hold", duration: 4, text: "Hold gently...", scale: 1.35, color: "#9B6CFF" },
-      { name: "Exhale", duration: 4, text: "Release with ease...", scale: 0.9, color: "#FFB39C" },
-      { name: "Rest", duration: 4, text: "Rest in the quiet...", scale: 0.9, color: "#6578FF" },
+      { nameKey: "breathInhale", duration: 4, textKey: "breathInSlow", scale: 1.35, color: "#66B7FF" },
+      { nameKey: "breathHold", duration: 4, textKey: "breathHoldGentle", scale: 1.35, color: "#9B6CFF" },
+      { nameKey: "breathExhale", duration: 4, textKey: "breathReleaseEase", scale: 0.9, color: "#FFB39C" },
+      { nameKey: "breathRest", duration: 4, textKey: "breathRestQuiet", scale: 0.9, color: "#6578FF" },
     ],
   },
   relax: {
     id: "relax",
-    name: "4-7-8 Deep Calm",
-    description: "4s Inhale · 7s Hold · 8s Exhale",
+    nameKey: "breathRelax",
+    descriptionKey: "breathRelaxDesc",
     phases: [
-      { name: "Inhale", duration: 4, text: "Inhale peace...", scale: 1.4, color: "#66B7FF" },
-      { name: "Hold", duration: 7, text: "Hold the stillness...", scale: 1.4, color: "#9B6CFF" },
-      { name: "Exhale", duration: 8, text: "Let everything go...", scale: 0.85, color: "#FFB39C" },
+      { nameKey: "breathInhale", duration: 4, textKey: "breathInPeace", scale: 1.4, color: "#66B7FF" },
+      { nameKey: "breathHold", duration: 7, textKey: "breathHoldStill", scale: 1.4, color: "#9B6CFF" },
+      { nameKey: "breathExhale", duration: 8, textKey: "breathLetGo", scale: 0.85, color: "#FFB39C" },
     ],
   },
 };
@@ -146,7 +146,7 @@ export const BreathingModal = ({ isOpen, onClose, t }) => {
                 <Wind size={16} style={{ color: currentPhase.color }} />
               </span>
               <span className="text-xs uppercase font-mono tracking-wider" style={{ color: "var(--text-muted)" }}>
-                Mindfulness Breathing
+                {t("breathTitle")}
               </span>
             </div>
 
@@ -158,8 +158,8 @@ export const BreathingModal = ({ isOpen, onClose, t }) => {
                   background: "rgba(255,255,255,0.06)",
                   color: soundEnabled ? "var(--text-primary)" : "var(--text-muted)",
                 }}
-                aria-label="Toggle Sound"
-                title={soundEnabled ? "Mute audio cues" : "Enable audio cues"}
+                aria-label={t("toggleSound")}
+                title={soundEnabled ? t("muteCues") : t("enableCues")}
               >
                 {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
@@ -167,7 +167,7 @@ export const BreathingModal = ({ isOpen, onClose, t }) => {
                 onClick={onClose}
                 className="p-2 rounded-full transition-colors hover:bg-white/10"
                 style={{ color: "var(--text-muted)" }}
-                aria-label="Close"
+                aria-label={t("close")}
               >
                 <X size={18} />
               </button>
@@ -191,7 +191,7 @@ export const BreathingModal = ({ isOpen, onClose, t }) => {
                   border: modeKey === mode.id ? "1px solid rgba(155,108,255,0.4)" : "1px solid transparent",
                 }}
               >
-                {mode.name}
+                {t(mode.nameKey)}
               </button>
             ))}
           </div>
@@ -233,7 +233,7 @@ export const BreathingModal = ({ isOpen, onClose, t }) => {
                 {secondsLeft}
               </span>
               <span className="text-[11px] font-mono uppercase tracking-widest text-white/80">
-                {currentPhase.name}
+                {t(currentPhase.nameKey)}
               </span>
             </motion.div>
           </div>
@@ -244,10 +244,10 @@ export const BreathingModal = ({ isOpen, onClose, t }) => {
               className="font-display text-2xl md:text-3xl font-bold mb-2 transition-colors duration-700"
               style={{ color: "#F7F7FF" }}
             >
-              {currentPhase.text}
+              {t(currentPhase.textKey)}
             </h3>
             <p className="text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
-              Cycle {cyclesCompleted + 1} of 4 · {currentMode.description}
+              {t("breathCycle").replace("{n}", String(cyclesCompleted + 1))} · {t(currentMode.descriptionKey)}
             </p>
           </div>
 
@@ -264,7 +264,7 @@ export const BreathingModal = ({ isOpen, onClose, t }) => {
             >
               <CheckCircle2 size={18} className="text-emerald-400" />
               <p className="text-sm font-medium text-emerald-300">
-                You've centered your mind. Return whenever you need a moment.
+                {t("breathDone")}
               </p>
             </motion.div>
           )}
@@ -280,7 +280,7 @@ export const BreathingModal = ({ isOpen, onClose, t }) => {
                 boxShadow: "0 0 28px rgba(155, 108, 255, 0.35)",
               }}
             >
-              Done Reflecting
+              {t("breathFinish")}
             </button>
           </div>
         </motion.div>

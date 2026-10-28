@@ -4,7 +4,7 @@ import { Pen, Brush, Mic, Clock, Sparkles, Search, Filter, Calendar, ChevronDown
 
 const TYPE_ICONS = { text: Pen, drawing: Brush, speech: Mic, fusion: Sparkles };
 
-const MOOD_FILTERS = ["all", "joy", "calmness", "stress", "exhaustion", "sadness", "reflective", "curiosity"];
+const MOOD_FILTERS = ["all", "joy", "sadness", "anger", "fear", "surprise", "disgust", "neutral"];
 
 export const MoodHistory = ({ history, t }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,7 +92,7 @@ export const MoodHistory = ({ history, t }) => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search reflections..."
+            placeholder={t("searchReflections")}
             className="w-full pl-9 pr-4 py-2 rounded-full bg-black/40 border border-white/15 text-xs text-white placeholder-white/40 focus:outline-none focus:border-violet-400 transition-colors"
           />
         </div>

@@ -1,34 +1,38 @@
-import React, { useCallback, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 import {
   Sparkles,
   Bookmark,
   Check,
-  Download,
-  Info,
   TrendingUp,
   Volume2,
   VolumeX,
   Copy,
-  Wand2,
-  X,
   Moon,
   Cloud,
   Heart,
   Shuffle,
   ArrowRight,
-  Activity,
-  Zap,
   RotateCcw,
-  BookOpen,
 } from "lucide-react";
+import { speechLocale } from "@/lib/languages";
 import { API_BASE } from "@/lib/api";
 import axios from "axios";
 import ParticleBlob from "@/components/mood/ParticleBlob";
 import LivingTapestryCard from "@/components/mood/LivingTapestryCard";
 import CognitiveReframer from "@/components/mood/CognitiveReframer";
-import ContradictionDetector from "@/components/mood/ContradictionDetector";
 import NextStepPanel from "@/components/mood/NextStepPanel";
+
+const EMOTION_ORDER = ["joy", "sadness", "anger", "fear", "surprise", "disgust", "neutral"];
+const EMOTION_COLORS = {
+  joy: "#E3A008",
+  sadness: "#3B82C4",
+  anger: "#E11D48",
+  fear: "#7C3AED",
+  surprise: "#EA7A3A",
+  disgust: "#3F8F6B",
+  neutral: "#7A7388",
+};
 
 export const MoodResult = ({
   analysis,
@@ -39,6 +43,7 @@ export const MoodResult = ({
   onOpenBreathing,
   onNavigateMode,
   onStartTalk,
+  onFollowUp,
 }) => {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -47,11 +52,14 @@ export const MoodResult = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const topTags = (analysis?.emotions || [])
-    .slice(0, 3)
-    .map((item) => t(item.emotion?.toLowerCase()) || item.emotion);
-
-  const tagString = topTags.length > 0 ? topTags.join(" • ") : "Calm • Hopeful • Reflective";
+  const emotionMap = Object.fromEntries(
+    (analysis?.emotions || []).map((item) => [item.emotion?.toLowerCase(), item.score || 0])
+  );
+  const emotions = EMOTION_ORDER.map((name) => ({
+    emotion: name,
+    score: emotionMap[name] || 0,
+  }));
+  const dominant = (analysis?.dominant_mood || "neutral").toLowerCase();
 
   const saveToJournal = async () => {
     setSaving(true);
@@ -86,7 +94,7 @@ export const MoodResult = ({
       const utterance = new SpeechSynthesisUtterance(analysis.response_text);
       utterance.rate = 0.9;
       utterance.pitch = 0.95;
-      utterance.lang = language === "de" ? "de-DE" : "en-US";
+      utterance.lang = speechLocale(language);
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
       window.speechSynthesis.speak(utterance);
@@ -97,278 +105,164 @@ export const MoodResult = ({
   return (
     <div data-testid="mood-result" className="w-full space-y-7 max-w-7xl mx-auto pb-16">
       {/* Top Header Breadcrumb & Actions Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-white/10">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-3" style={{ borderBottom: "1px solid var(--divider-subtle)" }}>
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={onReset}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-white/80 hover:text-white bg-white/[0.05] border border-white/10 hover:bg-white/[0.1] transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all"
+            style={{
+              color: "var(--text-secondary)",
+              background: "var(--control-bg)",
+              border: "1px solid var(--border-subtle)",
+            }}
           >
             <RotateCcw size={13} />
             <span>{t("newExpression") || "New Reflection"}</span>
           </button>
-          <div className="h-4 w-[1px] bg-white/10" />
+          <div className="h-4 w-[1px]" style={{ background: "var(--divider-subtle)" }} />
           <div className="flex items-center gap-2">
-            <Sparkles size={16} className="text-violet-400" />
-            <h3 className="font-display text-base font-bold text-white tracking-tight">
+            <Sparkles size={16} style={{ color: "var(--aura-violet)" }} />
+            <h3 className="font-display text-base font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
               {t("mirrorReflection")}
             </h3>
           </div>
         </div>
-
-        {/* Action Status Pills */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div
-            data-testid="dominant-mood"
-            className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-wide"
-            style={{
-              background: "linear-gradient(135deg, rgba(155, 108, 255, 0.25), rgba(101, 120, 255, 0.2))",
-              border: "1px solid rgba(155, 108, 255, 0.4)",
-              color: "#FFFFFF",
-              boxShadow: "0 0 16px rgba(155, 108, 255, 0.15)",
-            }}
-          >
-            {tagString}
-          </div>
-
-          {analysis?.affect_quadrant && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-semibold bg-blue-500/15 border border-blue-500/30 text-blue-300">
-              <Activity size={12} />
-              <span>{analysis.affect_quadrant}</span>
-            </div>
-          )}
-
-          {analysis?.alignment?.has_mismatch && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-semibold bg-pink-500/15 border border-pink-500/30 text-pink-300">
-              <Zap size={12} />
-              <span>Contradiction Detected</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ─── TIER 1: Living Tapestry Art & Emotional Spectrum Breakdown ─────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Living Emotional Tapestry (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col">
-          <LivingTapestryCard analysis={analysis} language={language} />
-        </div>
-
-        {/* Right Spectrum & Affect Summary (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col justify-between space-y-5">
-          {/* Emotions Breakdown */}
-          <div
-            className="rounded-3xl p-5 sm:p-6 backdrop-blur-2xl border border-white/10 shadow-2xl space-y-3.5 flex-1"
-            style={{
-              background: "linear-gradient(160deg, rgba(17, 29, 57, 0.75) 0%, rgba(7, 17, 38, 0.95) 100%)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono font-semibold uppercase text-violet-300 tracking-wider">
-                Emotional Spectrum
-              </span>
-              <span className="text-[10px] font-mono text-white/40">Relative Weights</span>
-            </div>
-
-            <div className="space-y-3">
-              {(analysis?.emotions || []).map((item, idx) => {
-                const scorePercent = Math.round((item.score || 0) * 100);
-                return (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="capitalize text-white/80">
-                        {t(item.emotion?.toLowerCase()) || item.emotion}
-                      </span>
-                      <span className="font-mono text-violet-300 text-[11px] font-semibold">
-                        {scorePercent}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${scorePercent}%` }}
-                        transition={{ duration: 0.8, delay: idx * 0.1 }}
-                        className="h-full rounded-full"
-                        style={{
-                          background: "linear-gradient(90deg, #9B6CFF 0%, #6578FF 50%, #FFB49D 100%)",
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Affect Circumplex Zone Summary */}
-          {analysis?.affect_quadrant && (
-            <div
-              className="rounded-2xl p-4 backdrop-blur-2xl border border-blue-500/20 shadow-xl space-y-1.5"
-              style={{
-                background: "linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(17, 29, 57, 0.8) 100%)",
-              }}
-            >
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-blue-300">Affect Circumplex</span>
-                <span className="font-mono text-white/60 text-[11px]">
-                  V: {typeof analysis.valence === "number" ? analysis.valence.toFixed(2) : "0.50"} · A:{" "}
-                  {typeof analysis.arousal === "number" ? analysis.arousal.toFixed(2) : "0.40"}
-                </span>
-              </div>
-              <p className="text-xs text-white/70 leading-relaxed">
-                Operating within the <span className="text-blue-300 font-semibold">{analysis.affect_quadrant}</span> zone.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ─── TIER 2: Contradiction Detector & Cognitive Distortion Reframer ─────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-        {/* Left: Contradiction Detector */}
-        <div className="flex flex-col">
-          {analysis?.alignment ? (
-            <ContradictionDetector
-              alignment={analysis.alignment}
-              dominantMood={analysis.dominant_mood}
-              t={t}
-            />
-          ) : (
-            <div className="h-full rounded-3xl p-6 border border-white/10 bg-slate-950/60" />
-          )}
-        </div>
-
-        {/* Right: Cognitive Reframing */}
-        <div className="flex flex-col">
-          {analysis?.cognitive_reframing ? (
-            <CognitiveReframer cognitiveData={analysis.cognitive_reframing} />
-          ) : (
-            <div className="h-full rounded-3xl p-6 border border-white/10 bg-slate-950/60" />
-          )}
-        </div>
-      </div>
-
-      {/* ─── TIER 3: Intimate Poetic Story & Journal Sanctuary Vault ───────────── */}
-      <div
-        className="relative rounded-3xl p-6 sm:p-8 backdrop-blur-2xl border border-white/10 shadow-2xl space-y-6"
-        style={{
-          background: "linear-gradient(160deg, rgba(17, 29, 57, 0.8) 0%, rgba(7, 17, 38, 0.98) 100%)",
-        }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
-          <div className="flex items-center gap-2 text-violet-300">
-            <BookOpen size={16} />
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider">
-              Intimate Mirror Story & Sanctuary Vault
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={toggleSpeech}
-              className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] transition-all"
-              title={isSpeaking ? "Stop listening" : "Listen to reflection"}
-            >
-              {isSpeaking ? <VolumeX size={14} className="text-violet-400" /> : <Volume2 size={14} />}
-              <span>{isSpeaking ? "Stop Voice" : "Read Aloud"}</span>
-            </button>
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] transition-all"
-              title="Copy reflection text"
-            >
-              <Copy size={13} />
-              <span>{copied ? "Copied" : "Copy"}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Poetic Message Text */}
-        <p
-          data-testid="ai-response-text"
-          className="font-display text-lg sm:text-xl leading-relaxed whitespace-pre-line text-white/95"
+        <div
+          data-testid="dominant-mood"
+          className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold capitalize"
           style={{
-            fontFamily: "'Playfair Display', serif",
-            letterSpacing: "0.01em",
+            background: "var(--chip-active-bg)",
+            border: "1px solid var(--border-highlight)",
+            color: "var(--text-primary)",
           }}
         >
-          {analysis.response_text}
-        </p>
-
-        {/* Journal Vault Note Saving Bar */}
-        <div className="pt-4 border-t border-white/10">
-          {saved ? (
-            <div
-              data-testid="journal-saved"
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 shadow-lg"
-            >
-              <Check size={16} />
-              <span>{t("savedToJournal")}</span>
-            </div>
-          ) : showNoteInput ? (
-            <div className="space-y-3">
-              <textarea
-                data-testid="journal-note-input"
-                value={journalNote}
-                onChange={(e) => setJournalNote(e.target.value)}
-                placeholder="Add a gentle personal note to this reflection (optional)..."
-                rows={3}
-                className="w-full p-3.5 rounded-2xl bg-black/40 border border-white/15 outline-none text-xs text-white resize-none focus:border-violet-400"
-              />
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  data-testid="cancel-save-btn"
-                  onClick={() => setShowNoteInput(false)}
-                  className="px-4 py-2 rounded-full text-xs text-white/60 hover:text-white"
-                >
-                  {t("cancel")}
-                </button>
-                <button
-                  data-testid="confirm-save-btn"
-                  onClick={saveToJournal}
-                  disabled={saving}
-                  className="btn-mirror-me px-6 py-2 rounded-full text-xs font-semibold shadow-md"
-                >
-                  {saving ? t("saving") : t("saveEntry")}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-white/50">
-                Preserve this moment into your permanent encrypted journey timeline.
-              </p>
-              <div className="flex items-center gap-3">
-                {onExploreInsights && (
-                  <button
-                    onClick={onExploreInsights}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium text-white/70 hover:text-white bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] transition-all"
-                  >
-                    <TrendingUp size={14} />
-                    <span>{t("exploreInsights")}</span>
-                  </button>
-                )}
-                <motion.button
-                  data-testid="save-to-journal-btn"
-                  onClick={() => setShowNoteInput(true)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="btn-mirror-me flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold shadow-lg text-white"
-                >
-                  <Bookmark size={14} />
-                  <span>{t("saveReflection")}</span>
-                </motion.button>
-              </div>
-            </div>
-          )}
+          {t(dominant) || dominant}
         </div>
       </div>
 
-      {/* ─── TIER 4: Grounded Action Deck ("What do you need right now?") ───────── */}
+      <div className="result-print-row">
+        <article className="poem-slip" data-testid="poem-slip">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <span className="poem-slip-label text-[10px] font-mono uppercase tracking-[0.14em]">
+              {t("forPrinter")}
+            </span>
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={toggleSpeech} className="poem-slip-label p-1.5 rounded-full" aria-label={isSpeaking ? t("stopReading") : t("readAloud")}>
+                {isSpeaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
+              <button type="button" onClick={handleCopy} className="poem-slip-label p-1.5 rounded-full" aria-label={t("copyPoem")}>
+                <Copy size={13} />
+              </button>
+            </div>
+          </div>
+          <p data-testid="ai-response-text" className="poem-slip-text">
+            {analysis.response_text}
+          </p>
+          <p className="poem-slip-label mt-4 text-[10px] font-mono">
+            {copied ? t("copied") : t("poemMeta")}
+          </p>
+        </article>
+
+        <section
+          data-testid="emotion-column"
+          className="rounded-3xl p-4 flex flex-col justify-center gap-2.5"
+          style={{
+            background: "var(--card-glass-bg)",
+            border: "1px solid var(--card-glass-border)",
+          }}
+        >
+          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+            {t("emotionsLabel")}
+          </span>
+          {emotions.map((item) => {
+            const scorePercent = Math.round((item.score || 0) * 100);
+            const color = EMOTION_COLORS[item.emotion] || "#7A7388";
+            return (
+              <div key={item.emotion} className="space-y-1" data-testid={`emotion-bar-${item.emotion}`}>
+                <div className="flex items-center justify-between text-[11px] font-medium">
+                  <span style={{ color: item.emotion === dominant ? "var(--text-primary)" : "var(--text-secondary)", fontWeight: item.emotion === dominant ? 700 : 500 }}>
+                    {t(item.emotion) || item.emotion}
+                  </span>
+                  <span className="font-mono" style={{ color }}>{scorePercent}%</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "var(--bg-surface-soft)" }}>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${scorePercent}%` }}
+                    transition={{ duration: 0.7 }}
+                    className="h-full rounded-full"
+                    style={{ background: color }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </section>
+
+        <LivingTapestryCard analysis={analysis} language={language} />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {saved ? (
+          <div data-testid="journal-saved" className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "#3F8F6B" }}>
+            <Check size={16} />
+            <span>{t("savedToJournal")}</span>
+          </div>
+        ) : showNoteInput ? (
+          <div className="w-full space-y-3">
+            <textarea
+              data-testid="journal-note-input"
+              value={journalNote}
+              onChange={(e) => setJournalNote(e.target.value)}
+              placeholder={t("notePlaceholder")}
+              rows={3}
+              className="w-full p-3.5 rounded-2xl outline-none text-xs resize-none"
+              style={{
+                background: "var(--control-bg)",
+                border: "1px solid var(--control-border)",
+                color: "var(--text-primary)",
+              }}
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button type="button" data-testid="cancel-save-btn" onClick={() => setShowNoteInput(false)} className="px-4 py-2 rounded-full text-xs" style={{ color: "var(--text-muted)" }}>
+                {t("cancel")}
+              </button>
+              <button type="button" data-testid="confirm-save-btn" onClick={saveToJournal} disabled={saving} className="btn-mirror-me px-6 py-2 rounded-full text-xs font-semibold">
+                {saving ? t("saving") : t("saveEntry")}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Keep this poem with the rest of your reflections.
+            </p>
+            <div className="flex items-center gap-3">
+              {onExploreInsights && (
+                <button type="button" onClick={onExploreInsights} className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium" style={{ color: "var(--text-secondary)", background: "var(--control-bg)", border: "1px solid var(--border-subtle)" }}>
+                  <TrendingUp size={14} />
+                  <span>{t("exploreInsights")}</span>
+                </button>
+              )}
+              <button type="button" data-testid="save-to-journal-btn" onClick={() => setShowNoteInput(true)} className="btn-mirror-me flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold text-white">
+                <Bookmark size={14} />
+                <span>{t("saveReflection")}</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {analysis?.cognitive_reframing && (
+        <CognitiveReframer cognitiveData={analysis.cognitive_reframing} t={t} />
+      )}
+
       <NextStepPanel
-        dominantMood={analysis.dominant_mood}
         onOpenBreathing={onOpenBreathing}
         onNavigateMode={onNavigateMode}
         onStartTalk={onStartTalk}
+        onFollowUp={onFollowUp}
         t={t}
       />
     </div>
@@ -377,19 +271,19 @@ export const MoodResult = ({
 
 // ─── Live Reflection Preview (When no analysis is present) ────────────────────
 
-export const LiveReflectionPreview = ({ isAnalyzing, onPickPrompt, activeMode = "text" }) => {
+export const LiveReflectionPreview = ({ isAnalyzing, onPickPrompt, activeMode = "text", t = (key) => key }) => {
   const SUGGESTIONS = [
-    { id: "smile", text: "Something that made you smile today", icon: Moon, color: "#9333EA" },
-    { id: "heavy", text: "What's been feeling heavy lately", icon: Cloud, color: "#2563EB" },
-    { id: "thought", text: "A thought you can't stop thinking about", icon: Heart, color: "#DB2777" },
-    { id: "surprise", text: "Surprise me with a question", icon: Shuffle, color: "#059669" },
+    { id: "smile", text: t("suggestSmile"), icon: Moon, color: "#9333EA" },
+    { id: "heavy", text: t("suggestHeavy"), icon: Cloud, color: "#2563EB" },
+    { id: "thought", text: t("suggestThought"), icon: Heart, color: "#DB2777" },
+    { id: "surprise", text: t("suggestSurprise"), icon: Shuffle, color: "#059669" },
   ];
 
   const modeTags = {
-    text: ["Calm", "Thoughtful", "Hopeful"],
-    draw: ["Dreamy", "Calm", "Nostalgic"],
-    speech: ["Calm", "Thoughtful", "Hopeful"],
-    talk: ["Intimate", "Open", "Grounded"],
+    text: ["tagCalm", "tagThoughtful", "tagHopeful"],
+    draw: ["tagDreamy", "tagCalm", "tagNostalgic"],
+    speech: ["tagCalm", "tagThoughtful", "tagHopeful"],
+    talk: ["tagIntimate", "tagOpen", "tagGrounded"],
   };
 
   const tags = modeTags[activeMode] || modeTags.text;
@@ -411,13 +305,13 @@ export const LiveReflectionPreview = ({ isAnalyzing, onPickPrompt, activeMode = 
             className="font-display text-base font-semibold tracking-wide"
             style={{ color: "var(--text-primary)" }}
           >
-            {isAnalyzing ? "Reflecting on your words..." : "Your mirror is ready"}
+            {isAnalyzing ? t("previewReflecting") : t("previewReady")}
           </h3>
           <p
             className="text-xs mt-0.5 leading-relaxed"
             style={{ color: "var(--text-muted)" }}
           >
-            {isAnalyzing ? "Sensing emotions & nuances..." : "The more you express, the deeper the reflection."}
+            {isAnalyzing ? t("previewSensing") : t("previewHint")}
           </p>
         </div>
 
@@ -446,7 +340,7 @@ export const LiveReflectionPreview = ({ isAnalyzing, onPickPrompt, activeMode = 
                   color: "var(--text-primary)",
                 }}
               >
-                {tag}
+                {t(tag)}
               </span>
             ))}
           </div>
@@ -456,7 +350,7 @@ export const LiveReflectionPreview = ({ isAnalyzing, onPickPrompt, activeMode = 
         {isAnalyzing && (
           <div className="my-4">
             <div className="flex items-center justify-between text-[11px] text-violet-300 mb-1.5">
-              <span>Analyzing tone, pace & words...</span>
+              <span>{t("previewAnalyzing")}</span>
               <Sparkles size={12} className="animate-spin text-violet-400" />
             </div>
             <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -481,7 +375,7 @@ export const LiveReflectionPreview = ({ isAnalyzing, onPickPrompt, activeMode = 
           className="text-xs font-semibold mb-2.5"
           style={{ color: "var(--text-primary)" }}
         >
-          {activeMode === "draw" ? "Try drawing about..." : activeMode === "speech" ? "Try speaking about..." : "Try writing about..."}
+          {activeMode === "draw" ? t("tryDrawing") : activeMode === "speech" || activeMode === "talk" ? t("trySpeaking") : t("tryWriting")}
         </p>
 
         <div className="space-y-1.5">

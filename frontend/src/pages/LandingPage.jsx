@@ -14,6 +14,9 @@ import {
   MessageSquare,
   ChevronDown,
 } from "lucide-react";
+import { useTranslation } from "@/i18n";
+import { getLanguage, setStoredLanguage, speechLocale } from "@/lib/languages";
+import { LanguageSwitcher } from "@/components/mood/LanguageSwitcher";
 
 const FRAME_COUNT = 240;
 
@@ -21,6 +24,16 @@ export const LandingPage = () => {
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState(null);
   const [scrollPercent, setScrollPercent] = useState(0);
+  const [language, setLanguage] = useState(getLanguage);
+  const { t } = useTranslation(language);
+
+  const changeLanguage = (lang) => {
+    setLanguage(setStoredLanguage(lang));
+  };
+
+  useEffect(() => {
+    document.documentElement.lang = speechLocale(language);
+  }, [language]);
 
   const canvasRef = useRef(null);
   const imagesRef = useRef([]);
@@ -136,24 +149,10 @@ export const LandingPage = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const faqs = [
-    {
-      q: "Do I need to sign up or create an account?",
-      a: "No login or account is required. Mood Mirror AI is completely frictionless — you can immediately begin expressing and reflecting with a single click.",
-    },
-    {
-      q: "Is my reflection and journal private?",
-      a: "Yes. All your reflections, sketches, and spoken voice recordings remain strictly private and confidential within your local session.",
-    },
-    {
-      q: "How does the multimodal AI understand sketches and drawings?",
-      a: "Our multi-vision AI evaluates color palettes, line trajectories, spatial density, and abstract visual metaphors to infer your underlying emotional tone.",
-    },
-    {
-      q: "What languages are supported?",
-      a: "Mood Mirror natively supports both English and German (DE) across all text, speech recognition, and poetic AI reflections.",
-    },
-  ];
+  const faqs = [1, 2, 3, 4].map((n) => ({
+    q: t(`landFaq${n}q`),
+    a: t(`landFaq${n}a`),
+  }));
 
   return (
     <div
@@ -245,7 +244,7 @@ export const LandingPage = () => {
                   Mood Mirror AI
                 </span>
                 <span className="text-[10px] tracking-wider uppercase font-mono" style={{ color: "var(--text-muted)" }}>
-                  Emotion Intelligence
+                  {t("landBrandSub")}
                 </span>
               </div>
             </button>
@@ -273,24 +272,25 @@ export const LandingPage = () => {
           {/* Center: Navigation Links */}
           <nav className="hidden md:flex items-center gap-7 text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
             <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="hover:text-purple-400 transition-colors">
-              Experience
+              {t("landExperience")}
             </button>
             <button onClick={() => document.getElementById("modalities")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-purple-400 transition-colors">
-              Modalities
+              {t("landModalities")}
             </button>
             <button onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-purple-400 transition-colors">
-              How It Works
+              {t("landHow")}
             </button>
             <button onClick={() => document.getElementById("research")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-purple-400 transition-colors">
-              Research
+              {t("landResearch")}
             </button>
             <button onClick={() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-purple-400 transition-colors">
-              FAQ
+              {t("landFaq")}
             </button>
-          </nav>v>
+          </nav>
 
           {/* Right: Launch App CTA */}
           <div className="flex items-center gap-3">
+            <LanguageSwitcher language={language} onChange={changeLanguage} label={t("settingsLanguage")} testId="landing-language-switcher" />
             <motion.button
               data-testid="launch-app-btn"
               onClick={handleLaunch}
@@ -298,7 +298,7 @@ export const LandingPage = () => {
               whileTap={{ scale: 0.96 }}
               className="btn-mirror-me flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold shadow-lg"
             >
-              <span>Enter Mirror</span>
+              <span>{t("landEnter")}</span>
               <Sparkles size={14} />
             </motion.button>
           </div>
@@ -329,12 +329,12 @@ export const LandingPage = () => {
               }}
             >
               <Sparkles size={14} className="text-violet-400" />
-              <span>ScaDS.AI & TU Dresden · Emotion Intelligence AI</span>
+              <span>{t("landBadge")}</span>
             </div>
 
             {/* Open, Majestic Headline */}
             <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.08] tracking-tight drop-shadow-2xl">
-              Look into the mirror that{" "}
+              {t("landHeroBefore")}{" "}
               <span
                 style={{
                   background: "linear-gradient(135deg, #FFB49D 0%, #C084FC 45%, #66B7FF 100%)",
@@ -343,7 +343,7 @@ export const LandingPage = () => {
                   backgroundClip: "text",
                 }}
               >
-                truly listens.
+                {t("landHeroAccent")}
               </span>
             </h1>
 
@@ -352,7 +352,7 @@ export const LandingPage = () => {
               className="text-base sm:text-xl font-light leading-relaxed max-w-2xl mx-auto drop-shadow-md"
               style={{ color: "var(--text-secondary)" }}
             >
-              Express what you feel through writing, sketching, or speaking. Scroll down as our AI reflects your emotional state with living harmonic visuals and poetic resonance.
+              {t("landHeroBody")}
             </p>
 
             {/* Interactive Hero CTA Buttons */}
@@ -363,7 +363,7 @@ export const LandingPage = () => {
                 whileTap={{ scale: 0.96 }}
                 className="btn-mirror-me flex items-center justify-center gap-3 px-9 py-4 rounded-full text-base font-semibold shadow-2xl"
               >
-                <span>Enter Mirror App</span>
+                <span>{t("landEnterApp")}</span>
                 <ArrowRight size={18} />
               </motion.button>
 
@@ -376,7 +376,7 @@ export const LandingPage = () => {
                   color: "var(--text-secondary)",
                 }}
               >
-                <span>Scroll to Explore</span>
+                <span>{t("landScroll")}</span>
                 <ChevronDown size={16} />
               </button>
             </div>
@@ -392,15 +392,15 @@ export const LandingPage = () => {
             >
               <div className="flex items-center gap-1.5">
                 <ShieldCheck size={14} className="text-emerald-400" />
-                <span>Zero Login Required</span>
+                <span>{t("landTrustLogin")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Lock size={14} className="text-violet-400" />
-                <span>100% Private</span>
+                <span>{t("landTrustPrivate")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Zap size={14} className="text-blue-400" />
-                <span>Instant Groq AI Multi-Engine</span>
+                <span>{t("landTrustEngine")}</span>
               </div>
             </div>
           </motion.div>
@@ -412,13 +412,13 @@ export const LandingPage = () => {
         <section id="modalities" className="min-h-screen w-full flex flex-col justify-center py-24 px-4 sm:px-8 max-w-7xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-14">
             <span className="text-xs font-mono font-semibold uppercase text-violet-400 tracking-wider block mb-2">
-              Multimodal Consciousness
+              {t("landModalKicker")}
             </span>
             <h2 className="font-display text-3xl sm:text-5xl font-bold mb-3">
-              Express in the medium that feels natural
+              {t("landModalTitle")}
             </h2>
             <p className="text-sm sm:text-base font-light" style={{ color: "var(--text-secondary)" }}>
-              Whether you want to write a few words, sketch colors on canvas, speak freely, or hold an interactive audio dialogue.
+              {t("landModalBody")}
             </p>
           </div>
 
@@ -437,16 +437,16 @@ export const LandingPage = () => {
                   <Type size={22} />
                 </div>
                 <h3 className="font-display text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-                  Write
+                  {t("landWriteTitle")}
                 </h3>
                 <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                  Journal freely with rich mood emojis, inspirational prompt chips, and reflective keyboard shortcuts.
+                  {t("landWriteBody")}
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
-                <span className="text-[11px] font-mono text-violet-400">01 / Text</span>
+                <span className="text-[11px] font-mono text-violet-400">{t("landWriteMeta")}</span>
                 <button onClick={handleLaunch} className="text-xs font-semibold flex items-center gap-1 hover:underline">
-                  Try Writing <ArrowRight size={11} />
+                  {t("landTryWrite")} <ArrowRight size={11} />
                 </button>
               </div>
             </div>
@@ -465,16 +465,16 @@ export const LandingPage = () => {
                   <PenTool size={22} />
                 </div>
                 <h3 className="font-display text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-                  Draw
+                  {t("landDrawTitle")}
                 </h3>
                 <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                  Sketch colors, lines, and shapes on a smooth canvas. Our multimodal vision AI decodes visual emotional metaphors.
+                  {t("landDrawBody")}
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
-                <span className="text-[11px] font-mono text-pink-400">02 / Drawing</span>
+                <span className="text-[11px] font-mono text-pink-400">{t("landDrawMeta")}</span>
                 <button onClick={handleLaunch} className="text-xs font-semibold flex items-center gap-1 hover:underline">
-                  Try Drawing <ArrowRight size={11} />
+                  {t("landTryDraw")} <ArrowRight size={11} />
                 </button>
               </div>
             </div>
@@ -493,16 +493,16 @@ export const LandingPage = () => {
                   <Mic size={22} />
                 </div>
                 <h3 className="font-display text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-                  Speak
+                  {t("landSpeakTitle")}
                 </h3>
                 <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                  Speak naturally with a live reactive audio frequency waveform. Instant voice transcription in English & German.
+                  {t("landSpeakBody")}
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
-                <span className="text-[11px] font-mono text-blue-400">03 / Voice</span>
+                <span className="text-[11px] font-mono text-blue-400">{t("landSpeakMeta")}</span>
                 <button onClick={handleLaunch} className="text-xs font-semibold flex items-center gap-1 hover:underline">
-                  Try Speaking <ArrowRight size={11} />
+                  {t("landTrySpeak")} <ArrowRight size={11} />
                 </button>
               </div>
             </div>
@@ -521,16 +521,16 @@ export const LandingPage = () => {
                   <MessageSquare size={22} />
                 </div>
                 <h3 className="font-display text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-                  Talk (Live Beta)
+                  {t("landTalkTitle")}
                 </h3>
                 <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                  Have an interactive spoken dialogue with the living mirror using LiveKit low-latency audio streaming.
+                  {t("landTalkBody")}
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
-                <span className="text-[11px] font-mono text-emerald-400">04 / Live Audio</span>
+                <span className="text-[11px] font-mono text-emerald-400">{t("landTalkMeta")}</span>
                 <button onClick={handleLaunch} className="text-xs font-semibold flex items-center gap-1 hover:underline">
-                  Try Talk <ArrowRight size={11} />
+                  {t("landTryTalk")} <ArrowRight size={11} />
                 </button>
               </div>
             </div>
@@ -543,13 +543,13 @@ export const LandingPage = () => {
         <section id="how-it-works" className="min-h-screen w-full flex flex-col justify-center py-24 px-4 sm:px-8 max-w-7xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-14">
             <span className="text-xs font-mono font-semibold uppercase text-violet-400 tracking-wider block mb-2">
-              The Introspection Loop
+              {t("landLoopKicker")}
             </span>
             <h2 className="font-display text-3xl sm:text-5xl font-bold mb-3">
-              How The Mirror Reflects You
+              {t("landLoopTitle")}
             </h2>
             <p className="text-sm sm:text-base font-light" style={{ color: "var(--text-secondary)" }}>
-              A gentle 3-step loop designed for emotional clarity, self-awareness, and calm.
+              {t("landLoopBody")}
             </p>
           </div>
 
@@ -565,10 +565,10 @@ export const LandingPage = () => {
                 1
               </div>
               <h3 className="font-display text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                Express Freely
+                {t("landStep1Title")}
               </h3>
               <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                Share whatever is on your mind without pressure. No right or wrong answers — your genuine expression is all that matters.
+                {t("landStep1Body")}
               </p>
             </div>
 
@@ -583,10 +583,10 @@ export const LandingPage = () => {
                 2
               </div>
               <h3 className="font-display text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                Cognitive Reflection
+                {t("landStep2Title")}
               </h3>
               <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                Our multi-modal models analyze linguistic and visual signals, identifying emotions like calm, hope, nostalgia, or tension.
+                {t("landStep2Body")}
               </p>
             </div>
 
@@ -601,10 +601,10 @@ export const LandingPage = () => {
                 3
               </div>
               <h3 className="font-display text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                Understand & Breathe
+                {t("landStep3Title")}
               </h3>
               <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                Receive a poetic empathetic reflection, save it to your private journal, listen via voice synthesis, and observe your emotional journey.
+                {t("landStep3Body")}
               </p>
             </div>
           </div>
@@ -624,13 +624,13 @@ export const LandingPage = () => {
           >
             <div className="flex-1 space-y-4 text-center lg:text-left">
               <span className="text-xs font-mono font-semibold uppercase text-violet-400 tracking-wider">
-                Academic & Research Foundation
+                {t("landResearchKicker")}
               </span>
               <h2 className="font-display text-2xl sm:text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-                Developed in partnership with ScaDS.AI & TU Dresden
+                {t("landResearchTitle")}
               </h2>
               <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                Mood Mirror AI is an exploratory initiative combining emotion recognition, multimodal deep learning, and ambient computing. Built for ethical, privacy-preserving, and non-clinical human-computer introspection.
+                {t("landResearchBody")}
               </p>
             </div>
 
@@ -658,9 +658,9 @@ export const LandingPage = () => {
         <section id="faq" className="py-24 px-4 sm:px-8 max-w-4xl mx-auto w-full">
           <div className="text-center mb-12">
             <span className="text-xs font-mono font-semibold uppercase text-violet-400 tracking-wider block mb-2">
-              Questions & Answers
+              {t("landFaqKicker")}
             </span>
-            <h2 className="font-display text-3xl sm:text-5xl font-bold">Frequently Asked Questions</h2>
+            <h2 className="font-display text-3xl sm:text-5xl font-bold">{t("landFaqTitle")}</h2>
           </div>
 
           <div className="space-y-3">
@@ -725,11 +725,11 @@ export const LandingPage = () => {
             </div>
 
             <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight max-w-xl">
-              Ready to meet your inner reflection?
+              {t("landCtaTitle")}
             </h2>
 
             <p className="text-sm sm:text-base font-light max-w-lg" style={{ color: "var(--text-secondary)" }}>
-              Zero setup, no login required. Express what is on your mind and receive your personalized reflection in seconds.
+              {t("landCtaBody")}
             </p>
 
             <motion.button
@@ -738,7 +738,7 @@ export const LandingPage = () => {
               whileTap={{ scale: 0.96 }}
               className="btn-mirror-me px-10 py-4 rounded-full text-base font-semibold shadow-2xl flex items-center gap-3"
             >
-              <span>Enter Mirror App ✨</span>
+              <span>{t("landCtaButton")}</span>
               <ArrowRight size={18} />
             </motion.button>
           </div>
@@ -771,7 +771,7 @@ export const LandingPage = () => {
                 Mood Mirror AI
               </span>
               <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                Privacy-first emotional reflection & mindfulness.
+                {t("landFooterTag")}
               </p>
             </div>
           </div>
@@ -793,7 +793,7 @@ export const LandingPage = () => {
           </div>
 
           <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-            © {new Date().getFullYear()} Mood Mirror AI · All reflections are private to your session.
+            © {new Date().getFullYear()} Mood Mirror AI · {t("landFooterCopy")}
           </div>
         </div>
       </footer>

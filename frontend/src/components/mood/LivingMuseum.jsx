@@ -5,52 +5,37 @@ import { Palette, Maximize2, Download, Sparkles, Calendar, Heart, Eye } from "lu
 const MUSEUM_PIECES = [
   {
     id: "m1",
-    date: "Today",
-    day: "Thursday",
-    mood: "Relief & Excitement",
+    n: 1,
     valence: "+0.62",
     arousal: "0.81",
-    title: "Celestial Horizon Emerging from Tempest",
     image: "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=1200&q=85",
-    description: "A luminous cosmic landscape emerging from a turbulent storm, transitioning into warm golden light.",
   },
   {
     id: "m2",
-    date: "Yesterday",
-    day: "Wednesday",
-    mood: "Reflective Stillness",
+    n: 2,
     valence: "+0.40",
     arousal: "0.28",
-    title: "Twilight Mountain Mirror Lake",
     image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=85",
-    description: "Quiet lake at dusk beneath celestial violet nebulae, honoring gentle restoration.",
   },
   {
     id: "m3",
-    date: "3 days ago",
-    day: "Monday",
-    mood: "Vibrant Curiosity",
+    n: 3,
     valence: "+0.85",
     arousal: "0.75",
-    title: "Prismatic Aurora Cascades",
     image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=85",
-    description: "Luminescent crystalline valley awash in morning sunlight and flowing waterfalls.",
   },
   {
     id: "m4",
-    date: "Last week",
-    day: "Friday",
-    mood: "Calm Serenity",
+    n: 4,
     valence: "+0.72",
     arousal: "0.22",
-    title: "Whispering Dune Solitude",
     image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85",
-    description: "Tranquil shoreline with undulating pastel ripples and distant glowing lighthouses.",
   },
 ];
 
 export const LivingMuseum = ({ onStartReflection, t }) => {
   const [selectedPiece, setSelectedPiece] = useState(null);
+  const text = (piece, field) => t(`museum${piece.n}${field}`);
 
   return (
     <div data-testid="living-museum-page" className="max-w-6xl mx-auto space-y-8">
@@ -62,14 +47,14 @@ export const LivingMuseum = ({ onStartReflection, t }) => {
               <Palette size={16} />
             </div>
             <h2 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight">
-              My Living Museum
+              {t("museumTitle")}
             </h2>
             <span className="text-[10px] font-mono font-semibold uppercase px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
-              Generative Timeline
+              {t("museumBadge")}
             </span>
           </div>
           <p className="text-xs md:text-sm text-white/60">
-            Every emotional reflection evolves into a unique piece of living digital art in your private gallery.
+            {t("museumBody")}
           </p>
         </div>
 
@@ -78,7 +63,7 @@ export const LivingMuseum = ({ onStartReflection, t }) => {
           className="btn-mirror-me self-start md:self-auto px-5 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2"
         >
           <Sparkles size={14} />
-          <span>New Expression Art</span>
+          <span>{t("museumNew")}</span>
         </button>
       </div>
 
@@ -96,7 +81,7 @@ export const LivingMuseum = ({ onStartReflection, t }) => {
             <div className="relative aspect-[16/10] overflow-hidden bg-slate-900">
               <img
                 src={piece.image}
-                alt={piece.title}
+                alt={text(piece, "Title")}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
@@ -105,7 +90,7 @@ export const LivingMuseum = ({ onStartReflection, t }) => {
               <div className="absolute top-3 left-3 flex items-center gap-2">
                 <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white/90 border border-white/10 flex items-center gap-1.5">
                   <Calendar size={11} className="text-violet-400" />
-                  {piece.day} ({piece.date})
+                  {text(piece, "Day")} ({text(piece, "Date")})
                 </span>
               </div>
 
@@ -113,7 +98,7 @@ export const LivingMuseum = ({ onStartReflection, t }) => {
               <button
                 onClick={() => setSelectedPiece(piece)}
                 className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md text-white/80 hover:text-white border border-white/10 hover:scale-105 transition-all"
-                title="View Fullscreen"
+                title={t("museumFullscreen")}
               >
                 <Maximize2 size={14} />
               </button>
@@ -122,10 +107,10 @@ export const LivingMuseum = ({ onStartReflection, t }) => {
               <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
                 <div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-violet-300 font-semibold">
-                    ● {piece.mood}
+                    ● {text(piece, "Mood")}
                   </span>
                   <h4 className="font-display text-base font-bold text-white leading-snug">
-                    {piece.title}
+                    {text(piece, "Title")}
                   </h4>
                 </div>
               </div>
@@ -134,12 +119,12 @@ export const LivingMuseum = ({ onStartReflection, t }) => {
             {/* Description & Affect Coordinates */}
             <div className="p-4 space-y-2">
               <p className="text-xs text-white/70 leading-relaxed font-serif italic">
-                "{piece.description}"
+                "{text(piece, "Desc")}"
               </p>
               <div className="flex items-center justify-between text-[10px] font-mono text-white/50 pt-2 border-t border-white/10">
-                <span>Valence: {piece.valence}</span>
-                <span>Arousal: {piece.arousal}</span>
-                <span className="text-violet-300 font-semibold">SDXL Lightning Art</span>
+                <span>{t("museumValence")}: {piece.valence}</span>
+                <span>{t("museumArousal")}: {piece.arousal}</span>
+                <span className="text-violet-300 font-semibold">{t("museumArt")}</span>
               </div>
             </div>
           </motion.div>
@@ -162,14 +147,14 @@ export const LivingMuseum = ({ onStartReflection, t }) => {
             >
               <img
                 src={selectedPiece.image}
-                alt={selectedPiece.title}
+                alt={text(selectedPiece, "Title")}
                 className="w-full max-h-[80vh] object-contain rounded-3xl"
               />
 
               <div className="p-6 bg-black/80 backdrop-blur-md flex items-center justify-between text-white border-t border-white/10">
                 <div>
-                  <h3 className="font-display text-lg font-bold">{selectedPiece.title}</h3>
-                  <p className="text-xs text-white/60">{selectedPiece.description}</p>
+                  <h3 className="font-display text-lg font-bold">{text(selectedPiece, "Title")}</h3>
+                  <p className="text-xs text-white/60">{text(selectedPiece, "Desc")}</p>
                 </div>
 
                 <a
@@ -180,7 +165,7 @@ export const LivingMuseum = ({ onStartReflection, t }) => {
                   className="btn-mirror-me px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2"
                 >
                   <Download size={14} />
-                  <span>Download 4K Art</span>
+                  <span>{t("museumDownload")}</span>
                 </a>
               </div>
             </div>

@@ -15,14 +15,14 @@ const MirrorBlob = ({ state, audioLevelRef, size = 260 }) => (
   <ParticleBlob state={state} audioLevelRef={audioLevelRef} size={size} />
 );
 
-const STATE_LABEL = {
-  disconnected:  { en: "Disconnected",            de: "Getrennt" },
-  connecting:    { en: "Connecting…",             de: "Verbinde…" },
-  initializing:  { en: "Mirror is waking up…",    de: "Mirror erwacht…" },
-  idle:           { en: "Mirror is ready",         de: "Mirror ist bereit" },
-  listening:     { en: "Listening to you…",       de: "Ich höre dir zu…" },
-  thinking:      { en: "Mirror is reflecting…",   de: "Mirror reflektiert…" },
-  speaking:      { en: "Mirror is speaking…",     de: "Mirror spricht…" },
+const STATE_KEYS = {
+  disconnected: "talkDisconnected",
+  connecting: "talkConnectingState",
+  initializing: "talkInitializing",
+  idle: "talkIdle",
+  listening: "talkListening",
+  thinking: "talkThinking",
+  speaking: "talkSpeaking",
 };
 
 const resolveMediaStream = (track) => {
@@ -82,11 +82,10 @@ const useRmsFromTrack = (track) => {
   return rmsRef;
 };
 
-const VoiceSession = ({ onEnd, t, language }) => {
+const VoiceSession = ({ onEnd, t }) => {
   const { state, audioTrack } = useVoiceAssistant();
   const { microphoneTrack } = useLocalParticipant();
-  const lang  = language === "de" ? "de" : "en";
-  const label = STATE_LABEL[state]?.[lang] ?? (STATE_LABEL[state]?.en ?? state);
+  const label = t(STATE_KEYS[state] || "") || state;
 
   const liveTrack =
     state === "listening"
@@ -140,7 +139,7 @@ const VoiceSession = ({ onEnd, t, language }) => {
   );
 };
 
-const IdlePrompt = ({ onStart, t, language }) => (
+const IdlePrompt = ({ onStart, t }) => (
   <motion.div
     key="idle"
     initial={{ opacity: 0, y: 16 }}
@@ -184,7 +183,7 @@ const IdlePrompt = ({ onStart, t, language }) => (
   </motion.div>
 );
 
-const ConnectingView = ({ t, language }) => (
+const ConnectingView = ({ t }) => (
   <motion.div
     key="connecting"
     initial={{ opacity: 0 }}
@@ -196,7 +195,7 @@ const ConnectingView = ({ t, language }) => (
     <div className="flex items-center gap-3">
       <Loader2 size={18} strokeWidth={1.8} className="animate-spin text-blue-500" />
       <p className="text-sm font-mono" style={{ color: "var(--text-primary)" }}>
-        {language === "de" ? "Verbinde mit Mirror…" : "Connecting to Mirror…"}
+        {t("talkConnecting")}
       </p>
     </div>
   </motion.div>
@@ -218,7 +217,7 @@ const ErrorView = ({ msg, onRetry, t }) => (
         {msg || t("talkConnectFailed") || "Live voice session could not connect."}
       </p>
       <p className="text-xs max-w-sm mx-auto" style={{ color: "var(--text-muted)" }}>
-        Live voice requires a LiveKit cloud room token. You can also use the Speak tab for voice transcription!
+        {t("talkLiveKitHint")}
       </p>
     </div>
     <motion.button

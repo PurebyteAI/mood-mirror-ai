@@ -1,3 +1,8 @@
+import { bases } from "./i18n/bases";
+import { extras } from "./i18n/extras";
+import { extrasMore } from "./i18n/extras-more";
+import { chrome } from "./i18n/chrome";
+
 const translations = {
   en: {
     appTitle: "Mirror Me",
@@ -14,6 +19,8 @@ const translations = {
     navInsights: "Insights",
     navCollections: "Collections",
     navSettings: "Settings",
+    navJournal: "Journal",
+    navTalk: "Talk",
     takeABreath: "Take a breath",
     youveGotThis: "You've got this.",
     explorer: "Explorer",
@@ -99,12 +106,17 @@ const translations = {
     poem: "AI Poem",
     motivation: "Motivational",
     joke: "Lighthearted",
-    happiness: "Happy",
-    sadness: "Sad",
-    anger: "Angry",
-    calmness: "Calm",
-    stress: "Stress",
-    curiosity: "Curious",
+    joy: "Joy",
+    sadness: "Sadness",
+    anger: "Anger",
+    fear: "Fear",
+    surprise: "Surprise",
+    disgust: "Disgust",
+    neutral: "Neutral",
+    happiness: "Joy",
+    calmness: "Neutral",
+    stress: "Fear",
+    curiosity: "Surprise",
     ambientMusic: "Ambient Sound",
     moodImage: "Mood Image",
     generatingImage: "Generating a funny image...",
@@ -135,6 +147,8 @@ const translations = {
     navInsights: "Einblicke",
     navCollections: "Sammlungen",
     navSettings: "Einstellungen",
+    navJournal: "Tagebuch",
+    navTalk: "Gespräch",
     takeABreath: "Atme durch",
     youveGotThis: "Du schaffst das.",
     explorer: "Entdecker",
@@ -220,12 +234,17 @@ const translations = {
     poem: "KI-Gedicht",
     motivation: "Motivierend",
     joke: "Heiter",
-    happiness: "Freude",
+    joy: "Freude",
     sadness: "Traurigkeit",
     anger: "Wut",
-    calmness: "Ruhe",
-    stress: "Stress",
-    curiosity: "Neugier",
+    fear: "Angst",
+    surprise: "Überraschung",
+    disgust: "Ekel",
+    neutral: "Neutral",
+    happiness: "Freude",
+    calmness: "Neutral",
+    stress: "Angst",
+    curiosity: "Überraschung",
     ambientMusic: "Umgebungsklang",
     moodImage: "Stimmungsbild",
     generatingImage: "Lustiges Bild wird erstellt...",
@@ -242,6 +261,19 @@ const translations = {
     switchToDark: "Zum dunklen Modus wechseln",
   },
 };
+
+for (const [lang, pack] of Object.entries(extras)) {
+  translations[lang] = { ...(translations[lang] || {}), ...pack };
+}
+for (const [lang, pack] of Object.entries(bases)) {
+  translations[lang] = { ...(translations[lang] || {}), ...pack };
+}
+for (const [lang, pack] of Object.entries(extrasMore)) {
+  translations[lang] = { ...(translations[lang] || {}), ...pack };
+}
+for (const [lang, pack] of Object.entries(chrome)) {
+  translations[lang] = { ...(translations[lang] || {}), ...pack };
+}
 
 export const getTranslation = (lang, key) => {
   return translations[lang]?.[key] || translations.en[key] || key;

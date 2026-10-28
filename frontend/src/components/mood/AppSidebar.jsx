@@ -17,11 +17,11 @@ export const AppSidebar = ({ currentView, onNav, onExit, t, mood, historyCount =
 
   const navItems = [
     { id: "mirror", labelKey: "navHome", icon: House, badge: null },
-    { id: "museum", label: "Living Museum", icon: Palette, badge: "Art" },
+    { id: "museum", labelKey: "navMuseum", icon: Palette, badgeKey: "badgeArt" },
     { id: "history", labelKey: "navHistory", icon: Clock, badge: historyCount > 0 ? historyCount : null },
     { id: "insights", labelKey: "navInsights", icon: Compass, badge: null },
     { id: "journal", labelKey: "navJournal", icon: Bookmark, badge: null },
-    { id: "talk", labelKey: "navTalk", icon: MessageSquare, badge: "Live" },
+    { id: "talk", labelKey: "navTalk", icon: MessageSquare, badgeKey: "badgeLive" },
     { id: "settings", labelKey: "navSettings", icon: Settings, badge: null },
   ];
 
@@ -122,7 +122,7 @@ export const AppSidebar = ({ currentView, onNav, onExit, t, mood, historyCount =
                   {item.labelKey ? t(item.labelKey) : item.label}
                 </span>
 
-                {item.badge && (
+                {(item.badge || item.badgeKey) && (
                   <span
                     className="text-[9px] font-mono font-semibold px-1.5 py-0.2 rounded-full uppercase"
                     style={{
@@ -133,7 +133,7 @@ export const AppSidebar = ({ currentView, onNav, onExit, t, mood, historyCount =
                       border: "1px solid var(--border-subtle)",
                     }}
                   >
-                    {item.badge}
+                    {item.badgeKey ? t(item.badgeKey) : item.badge}
                   </span>
                 )}
               </button>
@@ -168,7 +168,7 @@ export const AppSidebar = ({ currentView, onNav, onExit, t, mood, historyCount =
                 className="text-[9px] font-mono"
                 style={{ color: "var(--text-muted)" }}
               >
-                Streak 12
+                {t("streak")} 12
               </span>
             </div>
 
@@ -233,10 +233,10 @@ export const AppSidebar = ({ currentView, onNav, onExit, t, mood, historyCount =
               border: "1px solid var(--border-subtle)",
               color: "var(--text-secondary)",
             }}
-            title="Exit to Landing Page"
+            title={t("exitLanding")}
           >
             <LogOut size={13} className="text-red-400" />
-            <span>Exit to Landing</span>
+            <span>{t("exitLanding")}</span>
           </button>
         </div>
       </aside>
@@ -254,7 +254,7 @@ export const AppSidebar = ({ currentView, onNav, onExit, t, mood, historyCount =
 export const MobileNav = ({ currentView, onNav, t }) => {
   const items = [
     { id: "mirror", labelKey: "navHome", icon: House },
-    { id: "museum", label: "Museum", icon: Palette },
+    { id: "museum", labelKey: "navMuseumShort", icon: Palette },
     { id: "history", labelKey: "navHistory", icon: Clock },
     { id: "insights", labelKey: "navInsights", icon: Compass },
     { id: "journal", labelKey: "navJournal", icon: Bookmark },

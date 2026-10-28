@@ -130,6 +130,31 @@ Trend guidance: {trend_guidance.get(self.trend, "")}
 # SYSTEM PROMPT BASE
 # ---------------------------------------------------------------------
 
+VOICE_LANGUAGES = {
+    "en": "English",
+    "de": "German",
+    "fr": "French",
+    "it": "Italian",
+    "es": "Spanish",
+    "zh": "Mandarin Chinese",
+}
+
+GREETINGS = {
+    "en": "Greet the user warmly as Mirror in English. Keep it to one sentence and one gentle open question about how they're feeling today. Sound human and unhurried.",
+    "de": "Begrüße die Person auf Deutsch als Mirror. Ein Satz und eine sanfte offene Frage, wie es ihr heute geht. Menschlich und ohne Eile.",
+    "fr": "Accueille la personne en français en tant que Mirror. Une phrase et une question ouverte et douce sur comment elle se sent aujourd'hui.",
+    "it": "Accogli la persona in italiano come Mirror. Una frase e una domanda aperta e gentile su come si sente oggi.",
+    "es": "Saluda a la persona en español como Mirror. Una frase y una pregunta abierta y suave sobre cómo se siente hoy.",
+    "zh": "用普通话以 Mirror 的身份问候。只用一句话，再轻轻问一个开放的问题：今天感觉怎么样。自然，不着急。",
+}
+
+
+def _voice_language_line(language: str) -> str:
+    code = language if language in VOICE_LANGUAGES else "en"
+    name = VOICE_LANGUAGES[code]
+    return f"Speak only in {name}. The person selected {name}. Do not switch to another language."
+
+
 BASE_PROMPT = """
 You are Mirror, a warm and emotionally perceptive voice companion. You speak like a caring, non-judgmental friend — not a therapist or a chatbot.
 
@@ -156,7 +181,8 @@ Tone: gentle, grounded, present, and genuinely curious about the person.
 class MirrorTherapist(Agent):
 
     def __init__(self, language: str = "en") -> None:
-        super().__init__(instructions=BASE_PROMPT)
+        self.language = language if language in VOICE_LANGUAGES else "en"
+        super().__init__(instructions=BASE_PROMPT + "\n" + _voice_language_line(self.language))
         self.memory = EmotionalMemory()
 
     async def on_user_message(self, message: str) -> str:
@@ -175,7 +201,7 @@ class MirrorTherapist(Agent):
         )
 
         # 🧠 Inject memory into prompt
-        dynamic_prompt = BASE_PROMPT + self.memory.to_prompt()
+        dynamic_prompt = BASE_PROMPT + "\n" + _voice_language_line(self.language) + self.memory.to_prompt()
 
         # Update agent instructions dynamically
         self.instructions = dynamic_prompt
@@ -194,7 +220,8 @@ async def entrypoint(ctx: agents.JobContext):
     language = "en"
     try:
         metadata = json.loads(ctx.job.metadata or "{}")
-        language = metadata.get("language", "en")
+        requested = metadata.get("language", "en")
+        language = requested if requested in VOICE_LANGUAGES else "en"
     except Exception:
         pass
 
@@ -236,7 +263,7 @@ async def entrypoint(ctx: agents.JobContext):
     )
 
     await session.generate_reply(
-        instructions="Greet the user warmly as Mirror. Keep it to one sentence and one gentle open question about how they're feeling today. Sound human and unhurried."
+        instructions=GREETINGS.get(language, GREETINGS["en"])
     )
 
 

@@ -16,6 +16,7 @@ import {
   Zap,
   Volume2,
 } from "lucide-react";
+import { speechLocale } from "@/lib/languages";
 
 const PALETTE = [
   { id: "purple", color: "#A855F7" },
@@ -27,7 +28,7 @@ const PALETTE = [
   { id: "slate", color: "#64748B" },
 ];
 
-export const DrawInput = ({ onAnalyze, isAnalyzing, t }) => {
+export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
   const canvasBg = "#071126";
 
   const canvasRef = useRef(null);
@@ -96,7 +97,7 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t }) => {
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = "en-US";
+        recognition.lang = speechLocale(language);
 
         recognition.onresult = (event) => {
           let fullText = "";

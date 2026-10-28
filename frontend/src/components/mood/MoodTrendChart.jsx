@@ -9,12 +9,13 @@ import {
 } from "recharts";
 
 const MOOD_CONFIG = {
-  happiness: { color: "#FCD34D", label: "Happy" },
-  sadness: { color: "#60A5FA", label: "Sad" },
-  stress: { color: "#F97316", label: "Stress" },
-  calmness: { color: "#34D399", label: "Calm" },
+  joy: { color: "#FCD34D", label: "Joy" },
+  sadness: { color: "#60A5FA", label: "Sadness" },
   anger: { color: "#F87171", label: "Anger" },
-  curiosity: { color: "#C084FC", label: "Curious" },
+  fear: { color: "#C084FC", label: "Fear" },
+  surprise: { color: "#FB923C", label: "Surprise" },
+  disgust: { color: "#34D399", label: "Disgust" },
+  neutral: { color: "#A1A1AA", label: "Neutral" },
 };
 
 const getThemeValue = (name, fallback) => {

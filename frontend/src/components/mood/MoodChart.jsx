@@ -3,26 +3,36 @@ import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
 
 const MOOD_COLORS_DARK = {
-  happiness: "#FCD34D",
+  joy: "#FCD34D",
   sadness: "#60A5FA",
   anger: "#F87171",
-  calmness: "#34D399",
-  stress: "#F97316",
-  curiosity: "#C084FC",
+  fear: "#C084FC",
+  surprise: "#FB923C",
+  disgust: "#34D399",
+  neutral: "#A1A1AA",
+  happiness: "#FCD34D",
+  calmness: "#A1A1AA",
+  stress: "#C084FC",
+  curiosity: "#FB923C",
 };
 
 const MOOD_COLORS_LIGHT = {
-  happiness: "#d4a840",
+  joy: "#d4a840",
   sadness: "#6898d0",
   anger: "#c86858",
-  calmness: "#5aaa78",
-  stress: "#c87840",
-  curiosity: "#9870c0",
+  fear: "#9870c0",
+  surprise: "#c87840",
+  disgust: "#5aaa78",
+  neutral: "#7a7388",
+  happiness: "#d4a840",
+  calmness: "#7a7388",
+  stress: "#9870c0",
+  curiosity: "#c87840",
 };
 
 export const MoodChart = ({ emotions, t }) => {
   const { resolvedTheme } = useTheme();
-  const MOOD_COLORS = resolvedTheme === "light" ? MOOD_COLORS_LIGHT : MOOD_COLORS_DARK;
+  const MOOD_COLORS = resolvedTheme === "dark" ? MOOD_COLORS_DARK : MOOD_COLORS_LIGHT;
   if (!emotions || emotions.length === 0) return null;
 
   const sorted = [...emotions].sort((a, b) => b.score - a.score);

@@ -2,6 +2,7 @@ import React from "react";
 import { Flame, Settings, LogOut } from "lucide-react";
 import { AmbientControl } from "@/components/mood/AmbientControl";
 import HackathonDemoBar from "@/components/mood/HackathonDemoBar";
+import { LanguageSwitcher } from "@/components/mood/LanguageSwitcher";
 
 export const Header = ({ onNav, onExit, language, onLanguageChange, t, dominantMood, currentView, onSelectScenario }) => {
   const handleExit = () => {
@@ -53,29 +54,11 @@ export const Header = ({ onNav, onExit, language, onLanguageChange, t, dominantM
       {/* Right Controls: Language, Ambient Music, Streak Badge, Exit */}
       <div className="flex items-center gap-2.5 ml-auto">
         {/* Language switcher */}
-        <div
-          data-testid="language-switcher"
-          className="flex items-center p-0.5 rounded-full"
-          style={{
-            background: "var(--control-bg)",
-            border: "1px solid var(--border-subtle)",
-          }}
-        >
-          {["en", "de"].map((lang) => (
-            <button
-              key={lang}
-              data-testid={`lang-${lang}`}
-              onClick={() => onLanguageChange(lang)}
-              className="px-2.5 py-1 rounded-full text-[11px] font-mono font-medium uppercase transition-all"
-              style={{
-                background: language === lang ? "var(--chip-active-bg)" : "transparent",
-                color: language === lang ? "var(--text-primary)" : "var(--text-muted)",
-              }}
-            >
-              {lang}
-            </button>
-          ))}
-        </div>
+        <LanguageSwitcher
+          language={language}
+          onChange={onLanguageChange}
+          label={t("settingsLanguage")}
+        />
 
         {/* Ambient Sound Pill Toggle */}
         <div className="hidden sm:flex">
@@ -97,7 +80,7 @@ export const Header = ({ onNav, onExit, language, onLanguageChange, t, dominantM
             className="text-xs font-semibold tracking-wide"
             style={{ color: "#FED7AA" }}
           >
-            Streak 12
+            {t("streak")} 12
           </span>
         </div>
 
@@ -110,10 +93,10 @@ export const Header = ({ onNav, onExit, language, onLanguageChange, t, dominantM
             border: "1px solid var(--border-subtle)",
             color: "var(--text-secondary)",
           }}
-          title="Exit to Landing Page"
+          title={t("exitLanding")}
         >
           <LogOut size={13} className="text-red-400" />
-          <span className="hidden sm:inline">Exit</span>
+          <span className="hidden sm:inline">{t("exit")}</span>
         </button>
 
         {/* Settings button on mobile */}

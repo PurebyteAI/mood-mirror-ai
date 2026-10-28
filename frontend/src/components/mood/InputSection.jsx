@@ -122,7 +122,7 @@ export const InputSection = ({
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.25 }}
           >
-            <DrawInput onAnalyze={onAnalyze} isAnalyzing={isAnalyzing} t={t} />
+            <DrawInput onAnalyze={onAnalyze} isAnalyzing={isAnalyzing} t={t} language={language} />
           </motion.div>
         )}
         {activeTab === "speech" && (

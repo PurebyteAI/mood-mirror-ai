@@ -101,3 +101,42 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Short funny optimistic poem (2 stanzas x 4 lines) tied to the inquiry, image tied to the input, Ekman emotions, printable result layout, reflection styles, light and romantic themes, working next steps."
+backend:
+  - task: "Poem, emotions, and scene image prompt"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "pytest tests/test_server.py: 6 passed in backend/.venv. Live POST /api/analyze returned joy/sadness/anger/fear/surprise/disgust/neutral, response_type poem, 8 lines about cold pizza and the last tram. Follow-up inquiry returned a different 8-line poem about the pizza as a win. Image prompt described that same curb scene."
+frontend:
+  - task: "Result layout, themes, styles, next steps, generated image"
+    implemented: true
+    working: true
+    file: "frontend/src/components/mood/MoodResult.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Frontend on :3000 pointed at local API :8001. Playwright passed settings (6 styles, light, romantic hearts, dark), write flow, 8-line poem at 280px, emotions between poem and image, reframing below, breathing modal, and a generated image whose alt text is the user's tram-and-pizza sentence. Sidebar Journal and Talk labels no longer show raw keys."
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: true
+test_plan:
+  current_focus: []
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+agent_communication:
+  - agent: "main"
+    message: "Combined local run verified. Dev frontend must use REACT_APP_BACKEND_URL=http://127.0.0.1:8001 or it keeps calling the hosted Hugging Face API."
