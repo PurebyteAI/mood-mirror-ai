@@ -14,7 +14,10 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
   const [generationCount, setGenerationCount] = useState(0);
 
   const moodKey = (analysis?.dominant_mood || "joy").toLowerCase();
-  const scene = (analysis?.input_preview || analysis?.tapestry_prompt || "this moment")
+  const rawPreview = analysis?.input_preview && !String(analysis.input_preview).startsWith("[")
+    ? analysis.input_preview
+    : "";
+  const scene = (rawPreview || analysis?.tapestry_prompt || "this moment")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -23,7 +26,7 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
     setFailed(false);
     try {
       const res = await axios.post(`${API_BASE}/image/generate`, {
-        user_input: analysis?.input_preview || analysis?.tapestry_prompt || "Emotional reflection",
+        user_input: rawPreview || analysis?.tapestry_prompt || "Emotional reflection",
         response_text: analysis?.response_text || "",
         dominant_mood: analysis?.dominant_mood || "joy",
         response_type: analysis?.response_type || "poem",
@@ -55,8 +58,15 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
     }
   };
 
+  const analysisKey =
+    analysis?.id ||
+    analysis?.timestamp ||
+    analysis?.response_text ||
+    analysis?.input_preview ||
+    "";
+
   useEffect(() => {
-    if (!analysis?.id) return undefined;
+    if (!analysis || !analysisKey) return undefined;
     setImageUrl(null);
     setGenerationCount(0);
     let cancelled = false;
@@ -65,7 +75,7 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
       setFailed(false);
       try {
         const res = await axios.post(`${API_BASE}/image/generate`, {
-          user_input: analysis.input_preview || analysis.tapestry_prompt || "Emotional reflection",
+          user_input: rawPreview || analysis.tapestry_prompt || "Emotional reflection",
           response_text: analysis.response_text || "",
           dominant_mood: analysis.dominant_mood || "joy",
           response_type: analysis.response_type || "poem",
@@ -73,7 +83,9 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
           tapestry_prompt: analysis.tapestry_prompt || "",
         });
         if (cancelled) return;
-        if (res.data?.image_url) {
+        if (res.data?.generated === false) {
+          setFailed(true);
+        } else if (res.data?.image_url) {
           setImageUrl(res.data.image_url);
           setGenerationCount(1);
         } else if (res.data?.image_base64) {
@@ -96,31 +108,33 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
     return () => {
       cancelled = true;
     };
-    // Regenerate only when a new reflection arrives. The scene fields are read from that snapshot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysis?.id, language]);
+  }, [analysisKey, language]);
 
   return (
     <>
       <div
         data-testid="living-tapestry-card"
-        className="h-full flex flex-col rounded-3xl overflow-hidden"
+        className="h-full flex flex-col rounded-2xl overflow-hidden"
         style={{
           background: "var(--card-glass-bg)",
           border: "1px solid var(--card-glass-border)",
           boxShadow: "var(--card-glass-shadow)",
         }}
       >
-        <div className="flex items-center justify-between gap-2 px-3 py-2">
-          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-            From your words
+        <div
+          className="flex items-center justify-between gap-2 px-4 py-3 border-b"
+          style={{ borderColor: "var(--divider-subtle)" }}
+        >
+          <span className="text-[10px] font-mono uppercase tracking-[0.16em]" style={{ color: "var(--text-muted)" }}>
+            {t("visualPlateHeader")}
           </span>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => imageUrl && setLightboxOpen(true)}
               disabled={!imageUrl}
-              className="p-1.5 rounded-full disabled:opacity-40"
+              className="p-1.5 rounded-full disabled:opacity-40 transition-colors"
               style={{ color: "var(--text-secondary)" }}
               aria-label={t("museumFullscreen")}
             >
@@ -138,7 +152,7 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
                 link.remove();
               }}
               disabled={!imageUrl}
-              className="p-1.5 rounded-full disabled:opacity-40"
+              className="p-1.5 rounded-full disabled:opacity-40 transition-colors"
               style={{ color: "var(--text-secondary)" }}
               aria-label={t("downloadImage")}
             >
@@ -147,7 +161,13 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
           </div>
         </div>
 
-        <div className="relative flex-1 min-h-[240px] mx-3 mb-3 rounded-2xl overflow-hidden" style={{ background: "var(--bg-surface-soft)" }}>
+        <div
+          className="relative flex-1 min-h-[250px] m-3 rounded-xl overflow-hidden"
+          style={{
+            background: "var(--bg-surface-soft)",
+            border: "1px solid var(--border-subtle)",
+          }}
+        >
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -155,12 +175,12 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 p-4 flex flex-col justify-end">
-              <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            <div className="absolute inset-0 p-5 flex flex-col justify-end">
+              <p className="text-xs leading-relaxed font-mono" style={{ color: "var(--text-muted)" }}>
                 {failed ? t("imageFailedLead") : t("imageDrawing")}
               </p>
-              <p className="text-sm mt-2 font-medium" style={{ color: "var(--text-primary)" }}>
-                {scene}
+              <p className="font-display text-base mt-2 italic" style={{ color: "var(--text-primary)" }}>
+                “{scene}”
               </p>
             </div>
           )}
@@ -172,9 +192,9 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="absolute inset-0 flex flex-col items-center justify-center gap-2"
-                style={{ background: "color-mix(in srgb, var(--bg-base) 55%, transparent)" }}
+                style={{ background: "color-mix(in srgb, var(--bg-base) 65%, transparent)" }}
               >
-                <RefreshCw size={18} className="animate-spin" style={{ color: "var(--aura-violet)" }} />
+                <RefreshCw size={18} className="animate-spin" style={{ color: "var(--aura-gold)" }} />
                 <span className="text-[11px] font-mono" style={{ color: "var(--text-primary)" }}>
                   {t("paintingWords")}
                 </span>
@@ -182,13 +202,12 @@ export const LivingTapestryCard = ({ analysis, language = "en" }) => {
             )}
           </AnimatePresence>
 
-          <div className="absolute bottom-2 right-2">
+          <div className="absolute bottom-2.5 right-2.5">
             <button
               type="button"
               onClick={generate}
               disabled={isGenerating}
-              className="on-fill flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold text-white"
-              style={{ background: "var(--gradient-primary)" }}
+              className="btn-mirror-me flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-semibold"
             >
               <Wand2 size={12} />
               <span>{generationCount > 0 ? t("redraw") : t("drawScene")}</span>

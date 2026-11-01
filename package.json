@@ -1,5 +1,6 @@
 {
   "name": "mood-mirror-ai",
+  "version": "0.9.0",
   "private": true,
   "scripts": {
     "build": "cd frontend && yarn install && yarn build"

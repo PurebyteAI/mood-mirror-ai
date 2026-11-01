@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import aiosqlite
+from services.groq_service import EMOTION_ALIASES, canonicalize_emotions
 
 
 class SQLiteStore:
@@ -172,19 +173,22 @@ class SQLiteStore:
 
         trends: List[Dict[str, Any]] = []
         for row in rows:
-            emotions = json.loads(row["emotions"])
+            raw_emotions = json.loads(row["emotions"])
+            emotions = canonicalize_emotions(raw_emotions)
             emotion_map = {item["emotion"]: item["score"] for item in emotions}
+            raw_dominant = str(row["dominant_mood"] or "").strip().lower()
+            dominant_mood = EMOTION_ALIASES.get(raw_dominant, raw_dominant or "neutral")
             trends.append(
                 {
                     "timestamp": row["timestamp"],
-                    "dominant_mood": row["dominant_mood"],
-                    "joy": emotion_map.get("joy", emotion_map.get("happiness", 0)),
+                    "dominant_mood": dominant_mood,
+                    "joy": emotion_map.get("joy", 0),
                     "sadness": emotion_map.get("sadness", 0),
                     "anger": emotion_map.get("anger", 0),
-                    "fear": emotion_map.get("fear", emotion_map.get("stress", 0)),
-                    "surprise": emotion_map.get("surprise", emotion_map.get("curiosity", 0)),
+                    "fear": emotion_map.get("fear", 0),
+                    "surprise": emotion_map.get("surprise", 0),
                     "disgust": emotion_map.get("disgust", 0),
-                    "neutral": emotion_map.get("neutral", emotion_map.get("calmness", 0)),
+                    "neutral": emotion_map.get("neutral", 0),
                 }
             )
         return trends
@@ -197,12 +201,16 @@ class SQLiteStore:
             return cursor.rowcount > 0
 
     def _row_to_analysis(self, row: sqlite3.Row) -> Dict[str, Any]:
+        raw_emotions = json.loads(row["emotions"])
+        emotions = canonicalize_emotions(raw_emotions)
+        raw_dominant = str(row["dominant_mood"] or "").strip().lower()
+        dominant_mood = EMOTION_ALIASES.get(raw_dominant, emotions[0]["emotion"] if emotions else "neutral")
         return {
             "id": row["id"],
             "input_type": row["input_type"],
             "input_preview": row["input_preview"],
-            "emotions": json.loads(row["emotions"]),
-            "dominant_mood": row["dominant_mood"],
+            "emotions": emotions,
+            "dominant_mood": dominant_mood,
             "response_text": row["response_text"],
             "response_type": row["response_type"],
             "timestamp": row["timestamp"],
@@ -210,12 +218,16 @@ class SQLiteStore:
         }
 
     def _row_to_journal(self, row: sqlite3.Row) -> Dict[str, Any]:
+        raw_emotions = json.loads(row["emotions"])
+        emotions = canonicalize_emotions(raw_emotions)
+        raw_dominant = str(row["dominant_mood"] or "").strip().lower()
+        dominant_mood = EMOTION_ALIASES.get(raw_dominant, emotions[0]["emotion"] if emotions else "neutral")
         return {
             "id": row["id"],
             "input_type": row["input_type"],
             "input_preview": row["input_preview"],
-            "emotions": json.loads(row["emotions"]),
-            "dominant_mood": row["dominant_mood"],
+            "emotions": emotions,
+            "dominant_mood": dominant_mood,
             "response_text": row["response_text"],
             "response_type": row["response_type"],
             "timestamp": row["timestamp"],

@@ -98,12 +98,12 @@ const VoiceSession = ({ onEnd, t }) => {
   return (
     <motion.div
       key="session"
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.92 }}
+      exit={{ opacity: 0, scale: 0.94 }}
       className="flex flex-col items-center gap-6 py-4"
     >
-      <MirrorBlob state={state} audioLevelRef={audioLevelRef} size={280} />
+      <MirrorBlob state={state} audioLevelRef={audioLevelRef} size={270} />
 
       {/* State label */}
       <AnimatePresence mode="wait">
@@ -113,8 +113,8 @@ const VoiceSession = ({ onEnd, t }) => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.3 }}
-          className="text-sm font-mono tracking-widest uppercase font-semibold"
-          style={{ color: "#3B82F6" }}
+          className="text-xs font-mono tracking-[0.2em] uppercase font-semibold"
+          style={{ color: "var(--aura-gold)" }}
         >
           {label}
         </motion.p>
@@ -122,17 +122,18 @@ const VoiceSession = ({ onEnd, t }) => {
 
       {/* End session button */}
       <motion.button
+        type="button"
         onClick={onEnd}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="flex items-center gap-3 px-8 py-3 rounded-full text-sm font-medium transition-all"
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        className="flex items-center gap-3 px-7 py-3 rounded-full text-sm font-medium transition-all"
         style={{
-          background: "rgba(248,113,113,0.15)",
-          border: "1px solid rgba(248,113,113,0.4)",
-          color: "#EF4444",
+          background: "rgba(224, 122, 95, 0.14)",
+          border: "1px solid rgba(224, 122, 95, 0.4)",
+          color: "var(--aura-terracotta)",
         }}
       >
-        <PhoneOff size={16} strokeWidth={1.5} />
+        <PhoneOff size={16} strokeWidth={1.6} />
         <span>{t("endSession") || "End Session"}</span>
       </motion.button>
     </motion.div>
@@ -142,23 +143,29 @@ const VoiceSession = ({ onEnd, t }) => {
 const IdlePrompt = ({ onStart, t }) => (
   <motion.div
     key="idle"
-    initial={{ opacity: 0, y: 16 }}
+    initial={{ opacity: 0, y: 12 }}
     animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -16 }}
+    exit={{ opacity: 0, y: -12 }}
     className="flex flex-col items-center gap-6 py-4 text-center"
   >
-    <MirrorBlob state="idle" size={280} />
+    <MirrorBlob state="idle" size={270} />
 
     <div>
+      <span
+        className="text-[10px] font-mono uppercase tracking-[0.2em] block mb-2"
+        style={{ color: "var(--aura-gold)" }}
+      >
+        Real-Time Conversational Sanctuary
+      </span>
       <h3
-        className="font-display text-xl md:text-2xl font-semibold mb-1.5"
+        className="font-display text-2xl md:text-3xl font-medium mb-2"
         style={{ color: "var(--text-primary)" }}
       >
         {t("talkTitle") || "Voice Reflection with Mirror"}
       </h3>
       <p
         className="text-xs md:text-sm font-light max-w-sm mx-auto leading-relaxed"
-        style={{ color: "var(--text-muted)" }}
+        style={{ color: "var(--text-secondary)" }}
       >
         {t("talkHint") ||
           "Speak freely — Mirror listens in real-time, senses your tone, and responds with empathy."}
@@ -166,18 +173,13 @@ const IdlePrompt = ({ onStart, t }) => (
     </div>
 
     <motion.button
+      type="button"
       onClick={onStart}
-      whileHover={{ scale: 1.04 }}
-      whileTap={{ scale: 0.96 }}
-      className="flex items-center gap-3 px-9 py-3.5 rounded-full text-sm font-semibold tracking-wide shadow-lg"
-      style={{
-        background: "linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(147, 51, 234, 0.2) 100%)",
-        border: "1.5px solid rgba(59, 130, 246, 0.45)",
-        color: "var(--text-primary)",
-        boxShadow: "0 0 30px rgba(59, 130, 246, 0.18)",
-      }}
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.97 }}
+      className="btn-mirror-me flex items-center gap-3 px-8 py-3.5 rounded-full text-sm font-semibold tracking-wide"
     >
-      <Wifi size={16} strokeWidth={1.8} className="text-blue-500" />
+      <Wifi size={16} strokeWidth={1.8} />
       <span>{t("startMirrorSession") || "Start Live Voice Session"}</span>
     </motion.button>
   </motion.div>
@@ -191,9 +193,9 @@ const ConnectingView = ({ t }) => (
     exit={{ opacity: 0 }}
     className="flex flex-col items-center gap-6 py-10"
   >
-    <MirrorBlob state="connecting" size={280} />
+    <MirrorBlob state="connecting" size={270} />
     <div className="flex items-center gap-3">
-      <Loader2 size={18} strokeWidth={1.8} className="animate-spin text-blue-500" />
+      <Loader2 size={18} strokeWidth={1.8} className="animate-spin" style={{ color: "var(--aura-gold)" }} />
       <p className="text-sm font-mono" style={{ color: "var(--text-primary)" }}>
         {t("talkConnecting")}
       </p>
@@ -209,11 +211,17 @@ const ErrorView = ({ msg, onRetry, t }) => (
     exit={{ opacity: 0 }}
     className="flex flex-col items-center gap-5 py-10 text-center"
   >
-    <div className="p-3 rounded-full bg-red-500/15 text-red-500">
+    <div
+      className="p-3 rounded-full"
+      style={{
+        background: "rgba(224, 122, 95, 0.14)",
+        color: "var(--aura-terracotta)",
+      }}
+    >
       <AlertCircle size={24} />
     </div>
     <div>
-      <p className="text-sm font-medium text-red-500 mb-1">
+      <p className="text-sm font-medium mb-1" style={{ color: "var(--aura-terracotta)" }}>
         {msg || t("talkConnectFailed") || "Live voice session could not connect."}
       </p>
       <p className="text-xs max-w-sm mx-auto" style={{ color: "var(--text-muted)" }}>
@@ -221,14 +229,15 @@ const ErrorView = ({ msg, onRetry, t }) => (
       </p>
     </div>
     <motion.button
+      type="button"
       onClick={onRetry}
-      whileHover={{ scale: 1.04 }}
-      whileTap={{ scale: 0.96 }}
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.97 }}
       className="px-7 py-2.5 rounded-full text-sm font-medium"
       style={{
-        border: "1px solid rgba(239, 68, 68, 0.4)",
-        color: "#EF4444",
-        background: "rgba(239, 68, 68, 0.08)",
+        border: "1px solid var(--border-strong)",
+        color: "var(--text-primary)",
+        background: "var(--control-bg)",
       }}
     >
       {t("tryAgain") || "Try Again"}
@@ -238,8 +247,8 @@ const ErrorView = ({ msg, onRetry, t }) => (
 
 export const TalkToMirror = ({ t, language }) => {
   const [sessionState, setSessionState] = useState("idle");
-  const [token, setToken]       = useState("");
-  const [wsUrl, setWsUrl]       = useState("");
+  const [token, setToken] = useState("");
+  const [wsUrl, setWsUrl] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
   const startSession = useCallback(async () => {
@@ -273,7 +282,7 @@ export const TalkToMirror = ({ t, language }) => {
 
   return (
     <div
-      className="glass-card p-6 md:p-10 w-full"
+      className="glass-card p-6 md:p-10 w-full rounded-2xl"
       data-testid="talk-section"
       style={{
         background: "var(--card-glass-bg)",

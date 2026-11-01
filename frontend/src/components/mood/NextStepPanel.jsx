@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wind, Compass, Sparkles, Palette, MessageSquare, ArrowRight, Brain } from "lucide-react";
+import { Wind, Compass, Palette, MessageSquare, ArrowRight, Brain } from "lucide-react";
 import { BreathingModal } from "@/components/mood/BreathingModal";
 
 export const NextStepPanel = ({
@@ -50,6 +50,7 @@ export const NextStepPanel = ({
     {
       id: "release",
       icon: Wind,
+      accent: "var(--aura-sage)",
       badge: t("stepRelease"),
       title: t("stepReleaseTitle"),
       desc: t("stepReleaseDesc"),
@@ -58,6 +59,7 @@ export const NextStepPanel = ({
     {
       id: "explore",
       icon: Compass,
+      accent: "var(--aura-gold)",
       badge: t("stepExplore"),
       title: t("stepExploreTitle"),
       desc: t("stepExploreDesc"),
@@ -70,6 +72,7 @@ export const NextStepPanel = ({
     {
       id: "reframe",
       icon: Brain,
+      accent: "var(--aura-sky)",
       badge: t("stepReframe"),
       title: t("stepReframeTitle"),
       desc: t("stepReframeDesc"),
@@ -78,6 +81,7 @@ export const NextStepPanel = ({
     {
       id: "create",
       icon: Palette,
+      accent: "var(--aura-terracotta)",
       badge: t("stepCreate"),
       title: t("stepCreateTitle"),
       desc: t("stepCreateDesc"),
@@ -86,6 +90,7 @@ export const NextStepPanel = ({
     {
       id: "talk",
       icon: MessageSquare,
+      accent: "var(--aura-violet)",
       badge: t("stepTalk"),
       title: t("stepTalkTitle"),
       desc: t("stepTalkDesc"),
@@ -95,11 +100,14 @@ export const NextStepPanel = ({
 
   return (
     <>
-      <div data-testid="next-step-panel" className="glass-card p-5 sm:p-6">
+      <div data-testid="next-step-panel" className="glass-card p-5 sm:p-6 rounded-2xl">
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-1">
-            <Sparkles size={16} style={{ color: "var(--aura-violet)" }} />
-            <h4 className="font-display text-base sm:text-lg font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
+            <Compass size={15} style={{ color: "var(--aura-gold)" }} />
+            <h4
+              className="font-display text-lg font-medium tracking-tight"
+              style={{ color: "var(--text-primary)" }}
+            >
               {t("needNow")}
             </h4>
           </div>
@@ -120,26 +128,38 @@ export const NextStepPanel = ({
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={step.action}
-                className="text-left p-4 rounded-2xl transition-all duration-200 flex flex-col justify-between min-h-[148px]"
+                className="text-left p-4 rounded-xl transition-all duration-200 flex flex-col justify-between min-h-[148px]"
                 style={{
                   background: active ? "var(--chip-active-bg)" : "var(--control-bg)",
-                  border: active ? "1px solid var(--aura-violet)" : "1px solid var(--border-subtle)",
+                  border: active
+                    ? "1px solid var(--border-strong)"
+                    : "1px solid var(--border-subtle)",
                   color: "var(--text-primary)",
                 }}
               >
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-mono font-semibold uppercase px-2 py-0.5 rounded-full" style={{ color: "var(--aura-violet)", background: "var(--chip-active-bg)" }}>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span
+                      className="text-[9px] font-mono font-semibold uppercase px-2 py-0.5 rounded"
+                      style={{
+                        color: step.accent,
+                        background: "var(--bg-surface)",
+                        border: "1px solid var(--border-subtle)",
+                      }}
+                    >
                       {step.badge}
                     </span>
-                    <Icon size={16} style={{ color: "var(--aura-violet)" }} />
+                    <Icon size={15} style={{ color: step.accent }} />
                   </div>
-                  <h5 className="font-display text-sm font-bold mb-1">{step.title}</h5>
+                  <h5 className="font-display text-base font-medium mb-1">{step.title}</h5>
                   <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                     {step.desc}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 mt-3 text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                <div
+                  className="flex items-center gap-1 mt-3 text-[11px] font-mono font-medium"
+                  style={{ color: step.accent }}
+                >
                   <span>{busyId === step.id ? t("opening") : t("start")}</span>
                   <ArrowRight size={12} />
                 </div>
@@ -158,7 +178,11 @@ export const NextStepPanel = ({
               className="mt-4 pt-4 overflow-hidden"
               style={{ borderTop: "1px solid var(--divider-subtle)" }}
             >
-              <label className="block text-xs font-medium mb-2" style={{ color: "var(--text-secondary)" }} htmlFor="follow-up-inquiry">
+              <label
+                className="block text-xs font-medium mb-2"
+                style={{ color: "var(--text-secondary)" }}
+                htmlFor="follow-up-inquiry"
+              >
                 {t("followUpLabel")}
               </label>
               <div className="flex gap-2">
@@ -180,7 +204,7 @@ export const NextStepPanel = ({
                   type="submit"
                   data-testid="follow-up-submit"
                   disabled={!inquiryText.trim()}
-                  className="btn-mirror-me px-4 py-2.5 rounded-xl text-xs font-semibold"
+                  className="btn-mirror-me px-5 py-2.5 rounded-xl text-xs font-semibold"
                 >
                   {t("followUpReflect")}
                 </button>
@@ -189,15 +213,19 @@ export const NextStepPanel = ({
           )}
         </AnimatePresence>
         {inquiryError && (
-          <p className="text-[11px] mt-2" style={{ color: "var(--aura-rose)" }}>{inquiryError}</p>
+          <p className="text-[11px] mt-2" style={{ color: "var(--aura-terracotta)" }}>
+            {inquiryError}
+          </p>
         )}
       </div>
 
-      <BreathingModal
-        isOpen={breathingModalOpen}
-        onClose={() => setBreathingModalOpen(false)}
-        t={t}
-      />
+      {!onOpenBreathing && (
+        <BreathingModal
+          isOpen={breathingModalOpen}
+          onClose={() => setBreathingModalOpen(false)}
+          t={t}
+        />
+      )}
     </>
   );
 };

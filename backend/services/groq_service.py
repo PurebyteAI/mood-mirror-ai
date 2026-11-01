@@ -61,6 +61,7 @@ EMOTION_ALIASES = {
     "excitement": "joy",
     "pride": "joy",
     "warmth": "joy",
+    "gratitude": "joy",
     "sadness": "sadness",
     "sad": "sadness",
     "melancholy": "sadness",
@@ -88,6 +89,7 @@ EMOTION_ALIASES = {
     "peace": "neutral",
     "reflective": "neutral",
     "stillness": "neutral",
+    "nostalgia": "neutral",
     "fatigue": "neutral",
     "exhaustion": "neutral",
 }
@@ -150,25 +152,38 @@ def shape_poem(text: str) -> str:
 class GroqService:
     def __init__(self) -> None:
         self.api_key = os.environ.get("GROQ_API_KEY", "").strip()
-        if not self.api_key:
-            raise GroqError("GROQ_API_KEY is not configured")
+        self.scads_api_key = os.environ.get("SCADS_API_KEY", "").strip()
+        if not self.api_key and not self.scads_api_key:
+            raise GroqError("Neither GROQ_API_KEY nor SCADS_API_KEY is configured")
 
         self.base_url = os.environ.get("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
-        # High quality models
+        self.scads_base_url = os.environ.get("SCADS_BASE_URL", "https://llm.scads.ai/v1").rstrip("/")
+
+        # Primary Groq models
         self.model = os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b")
         self.text_fallback_models = [
             m.strip()
             for m in os.environ.get("GROQ_TEXT_FALLBACK_MODELS", "openai/gpt-oss-120b,openai/gpt-oss-20b").split(",")
             if m.strip()
         ]
-        # Vision / Multimodal model
         self.vision_model = os.environ.get("GROQ_VISION_MODEL", "qwen/qwen3.8-27b")
+
+        # ScaDS.AI failover models (in priority order: Qwen/Qwen3.8-27B -> zai-org/GLM-5.3-Flash -> zai-org/GLM-5.3)
+        self.scads_models = [
+            m.strip()
+            for m in os.environ.get(
+                "SCADS_MODELS",
+                "Qwen/Qwen3.8-27B,zai-org/GLM-5.3-Flash,zai-org/GLM-5.3",
+            ).split(",")
+            if m.strip()
+        ]
+        self.scads_vision_model = os.environ.get("SCADS_VISION_MODEL", "Qwen/Qwen3.8-27B").strip()
 
         self.timeout_seconds = float(os.environ.get("GROQ_TIMEOUT_SECONDS", "30"))
         self.max_retries = int(os.environ.get("GROQ_MAX_RETRIES", "2"))
         self.min_interval_seconds = float(os.environ.get("GROQ_MIN_INTERVAL_SECONDS", "0.0"))
-        self.max_tokens_fast = int(os.environ.get("GROQ_MAX_TOKENS_FAST", "600"))
-        self.max_tokens_balanced = int(os.environ.get("GROQ_MAX_TOKENS_BALANCED", "1000"))
+        self.max_tokens_fast = int(os.environ.get("GROQ_MAX_TOKENS_FAST", "900"))
+        self.max_tokens_balanced = int(os.environ.get("GROQ_MAX_TOKENS_BALANCED", "1400"))
 
         self._lock = asyncio.Lock()
         self._last_call = 0.0
@@ -207,61 +222,84 @@ class GroqService:
             prompt_text = f"{prompt_text}\n\nRespond with a valid JSON object."
 
         content: List[Dict[str, Any]] = [{"type": "text", "text": prompt_text}]
-
-        # Determine candidate models to attempt
         if image_data_url:
             content.append({"type": "image_url", "image_url": {"url": image_data_url}})
-            candidate_models = [self.vision_model]
-        else:
-            candidate_models = [self.model] + [m for m in self.text_fallback_models if m != self.model]
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "User-Agent": "MoodMirror/1.0",
-        }
+        # Build ordered candidate (provider_label, base_url, api_key, model_name, is_scads) targets:
+        # 1. Groq primary & text fallbacks
+        # 2. ScaDS.AI failover chain: Qwen/Qwen3.8-27B -> zai-org/GLM-5.3-Flash -> zai-org/GLM-5.3
+        targets: List[tuple[str, str, str, str, bool]] = []
+        if self.api_key:
+            if image_data_url:
+                targets.append(("groq", self.base_url, self.api_key, self.vision_model, False))
+            else:
+                groq_models = [self.model] + [m for m in self.text_fallback_models if m != self.model]
+                for m in groq_models:
+                    targets.append(("groq", self.base_url, self.api_key, m, False))
+
+        if self.scads_api_key:
+            if image_data_url:
+                targets.append(("scads", self.scads_base_url, self.scads_api_key, self.scads_vision_model, True))
+            else:
+                for m in self.scads_models:
+                    targets.append(("scads", self.scads_base_url, self.scads_api_key, m, True))
 
         last_error = "unknown"
 
-        for model_name in candidate_models:
-            payload = {
+        for provider_name, target_url, target_key, model_name, is_scads in targets:
+            headers = {
+                "Authorization": f"Bearer {target_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "MoodMirror/1.0",
+            }
+            payload: Dict[str, Any] = {
                 "model": model_name,
                 "messages": [{"role": "user", "content": content}],
                 "temperature": temperature,
-                "max_tokens": max_tokens,
+                "max_tokens": max(max_tokens, 2000) if is_scads else max_tokens,
                 "response_format": {"type": "json_object"},
             }
+            if is_scads:
+                payload["chat_template_kwargs"] = {"enable_thinking": False, "thinking": False}
 
             for attempt in range(1, self.max_retries + 1):
                 try:
-                    logger.info(f"Invoking model '{model_name}' (attempt {attempt})...")
+                    logger.info(f"Invoking {provider_name} model '{model_name}' (attempt {attempt})...")
                     response = await self._client.post(
-                        f"{self.base_url}/chat/completions",
+                        f"{target_url}/chat/completions",
                         headers=headers,
                         json=payload,
                     )
                     if response.status_code == 429:
                         retry_after = response.headers.get("retry-after")
-                        wait_time = float(retry_after) if retry_after else (2 ** attempt)
-                        await asyncio.sleep(wait_time)
-                        continue
+                        wait_time = float(retry_after) if retry_after else min(2 ** attempt, 4)
+                        if attempt < self.max_retries:
+                            await asyncio.sleep(wait_time)
+                            continue
+                        last_error = f"HTTP 429 ({provider_name}:{model_name})"
+                        break  # Advance to next model / ScaDS.AI provider
 
                     if response.status_code >= 400:
-                        last_error = f"HTTP {response.status_code} ({model_name}): {response.text[:200]}"
-                        logger.warning(f"Groq API error on model {model_name}: {last_error}")
-                        break  # Try next model
+                        last_error = f"HTTP {response.status_code} ({provider_name}:{model_name}): {response.text[:200]}"
+                        logger.warning(f"{provider_name.upper()} API error on model {model_name}: {last_error}")
+                        break  # Try next model / provider
 
                     data = response.json()
-                    logger.info(f"Model '{model_name}' returned successful response.")
-                    return self._parse_response(data)
+                    parsed_result = self._parse_response(data)
+                    logger.info(f"Provider '{provider_name}' model '{model_name}' returned successful real response.")
+                    return parsed_result
 
+                except GroqError as parse_exc:
+                    last_error = f"ParseError ({provider_name}:{model_name}): {parse_exc}"
+                    logger.warning(f"Failed to parse response from {provider_name}:{model_name}: {parse_exc}")
+                    break  # Try next model / provider
                 except httpx.RequestError as exc:
-                    last_error = f"RequestError ({model_name}): {exc}"
+                    last_error = f"RequestError ({provider_name}:{model_name}): {exc}"
                     if attempt == self.max_retries:
                         break
-                    await asyncio.sleep(min(2 ** attempt, 8))
+                    await asyncio.sleep(min(2 ** attempt, 4))
 
-        raise GroqError(f"All model attempts failed. Last error: {last_error} ({language})")
+        raise GroqError(f"All Groq and ScaDS.AI model attempts failed. Last error: {last_error} ({language})")
 
     def _parse_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
         choices = data.get("choices", [])
@@ -276,6 +314,7 @@ class GroqService:
             raise GroqError("Groq response missing content")
 
         cleaned = content.strip()
+        cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL | re.IGNORECASE).strip()
         if cleaned.startswith("```"):
             cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
             cleaned = re.sub(r"\s*```$", "", cleaned).strip()

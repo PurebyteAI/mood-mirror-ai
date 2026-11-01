@@ -1,107 +1,131 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Moon, Sun, Cloud, Heart, ArrowRight, Sparkles } from "lucide-react";
+import { Moon, Sun, Cloud, Heart, ArrowUpRight } from "lucide-react";
 
 const PROMPTS = [
   {
     key: "promptNote",
+    index: "01",
+    tag: "Solitude",
     icon: Moon,
-    badgeBg: "linear-gradient(135deg, rgba(155, 108, 255, 0.25), rgba(101, 120, 255, 0.15))",
-    iconColor: "#C084FC",
-    glow: "rgba(155, 108, 255, 0.2)",
-    border: "rgba(155, 108, 255, 0.3)",
+    accent: "var(--aura-violet)",
   },
   {
     key: "promptSmile",
+    index: "02",
+    tag: "Warmth",
     icon: Sun,
-    badgeBg: "linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(245, 158, 11, 0.15))",
-    iconColor: "#FCD34D",
-    glow: "rgba(249, 115, 22, 0.2)",
-    border: "rgba(249, 115, 22, 0.3)",
+    accent: "var(--aura-gold)",
   },
   {
     key: "promptHeavier",
+    index: "03",
+    tag: "Gravity",
     icon: Cloud,
-    badgeBg: "linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(56, 189, 248, 0.15))",
-    iconColor: "#66B7FF",
-    glow: "rgba(14, 165, 233, 0.2)",
-    border: "rgba(14, 165, 233, 0.3)",
+    accent: "var(--aura-sky)",
   },
   {
     key: "promptLetter",
+    index: "04",
+    tag: "Unsent",
     icon: Heart,
-    badgeBg: "linear-gradient(135deg, rgba(244, 63, 94, 0.25), rgba(236, 72, 153, 0.15))",
-    iconColor: "#F472B6",
-    glow: "rgba(244, 63, 94, 0.2)",
-    border: "rgba(244, 63, 94, 0.3)",
+    accent: "var(--aura-terracotta)",
   },
 ];
 
 export const PromptCarousel = ({ t, onPick }) => {
   return (
-    <section className="w-full mt-6 max-w-5xl mx-auto px-1">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-3 px-1">
-        <Sparkles size={14} className="text-violet-500 dark:text-violet-400" />
-        <h4
-          className="text-xs sm:text-sm font-semibold tracking-wide"
-          style={{ color: "var(--text-primary)" }}
+    <section className="w-full mt-7 max-w-5xl mx-auto px-1">
+      {/* Editorial Section Header */}
+      <div className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center gap-2">
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ background: "var(--aura-gold)" }}
+          />
+          <h4
+            className="text-xs font-mono uppercase tracking-[0.16em]"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {t("needInspiration")}
+          </h4>
+        </div>
+        <span
+          className="text-[10px] font-mono hidden sm:inline"
+          style={{ color: "var(--text-muted)" }}
         >
-          {t("needInspiration")}
-        </h4>
+          Select an inquiry to seed the notebook
+        </span>
       </div>
 
-      {/* Responsive Grid: All 4 Cards Clearly Visible and Balanced */}
+      {/* Responsive 4-Column Editorial Inquiry Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
         {PROMPTS.map((item) => {
           const Icon = item.icon;
           const text = t(item.key);
           return (
             <motion.button
+              type="button"
               key={item.key}
               onClick={() => onPick(text)}
-              whileHover={{ y: -3, scale: 1.015 }}
-              whileTap={{ scale: 0.98 }}
-              className="prompt-card w-full p-4 rounded-2xl text-left group flex flex-col justify-between transition-all duration-300"
-              style={{
-                boxShadow: `0 4px 20px ${item.glow}`,
-              }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.99 }}
+              className="prompt-card w-full p-4 rounded-2xl text-left group flex flex-col justify-between transition-all duration-200"
             >
               <div>
-                {/* Colored Icon Square */}
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 shadow-inner"
-                  style={{
-                    background: item.badgeBg,
-                    border: `1px solid ${item.border}`,
-                  }}
-                >
-                  <Icon size={16} strokeWidth={1.8} style={{ color: item.iconColor }} />
+                {/* Top Index & Tag Row */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-[10px] font-mono font-semibold"
+                      style={{ color: item.accent }}
+                    >
+                      {item.index}
+                    </span>
+                    <span
+                      className="text-[10px] font-mono uppercase tracking-wider"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      / {item.tag}
+                    </span>
+                  </div>
+                  <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    style={{
+                      background: "var(--control-bg)",
+                      border: "1px solid var(--border-subtle)",
+                      color: item.accent,
+                    }}
+                  >
+                    <Icon size={13} strokeWidth={1.75} />
+                  </div>
                 </div>
 
-                {/* Prompt Text */}
+                {/* Inquiry Text */}
                 <p
-                  className="text-xs sm:text-[13px] font-light leading-relaxed mb-3"
+                  className="font-display text-sm sm:text-[15px] leading-snug mb-3"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  {text}
+                  “{text}”
                 </p>
               </div>
 
-              {/* Arrow Action Button */}
-              <div className="flex justify-end pt-1">
+              {/* Bottom Action Row */}
+              <div
+                className="flex items-center justify-between pt-2.5 border-t"
+                style={{ borderColor: "var(--border-subtle)" }}
+              >
                 <span
-                  className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 group-hover:bg-violet-500/20 group-hover:translate-x-0.5"
-                  style={{
-                    background: "var(--control-bg)",
-                    border: "1px solid var(--border-subtle)",
-                  }}
+                  className="text-[10px] font-mono uppercase tracking-wider"
+                  style={{ color: "var(--text-muted)" }}
                 >
-                  <ArrowRight
-                    size={12}
-                    style={{ color: "var(--text-secondary)" }}
-                  />
+                  Open in Studio
                 </span>
+                <ArrowUpRight
+                  size={13}
+                  style={{ color: "var(--aura-gold)" }}
+                  className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
               </div>
             </motion.button>
           );

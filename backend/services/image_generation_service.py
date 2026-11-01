@@ -51,6 +51,10 @@ class ImageGenerationService:
         self.cf_api_token = os.environ.get("CLOUDFLARE_API_KEY", "").strip()
         self.cf_model = os.environ.get("CLOUDFLARE_IMAGE_MODEL", "@cf/bytedance/stable-diffusion-xl-lightning").strip()
 
+        self.scads_api_key = os.environ.get("SCADS_API_KEY", "").strip()
+        self.scads_base_url = os.environ.get("SCADS_BASE_URL", "https://llm.scads.ai/v1").rstrip("/")
+        self.scads_image_model = os.environ.get("SCADS_IMAGE_MODEL", "black-forest-labs/FLUX.2-klein-4B").strip()
+
         self.api_url = os.environ.get("IMAGE_API_URL", "https://image-api.aanuragtrivedi007.workers.dev").strip()
         self.api_token = os.environ.get("IMAGE_API_BEARER_TOKEN", "").strip()
         self.timeout_seconds = float(os.environ.get("IMAGE_API_TIMEOUT_SECONDS", "60"))
@@ -165,9 +169,51 @@ class ImageGenerationService:
                             "image_base64": data_uri,
                         }
             except Exception as e:
-                logger.warning(f"Direct Cloudflare SDXL Lightning failed: {e}; falling back to worker endpoint...")
+                logger.warning(f"Direct Cloudflare SDXL Lightning failed: {e}; falling back to ScaDS.AI FLUX...")
 
-        # Method 2: Worker Endpoint
+        # Method 2: ScaDS.AI FLUX Image Generation (black-forest-labs/FLUX.2-klein-4B)
+        if self.scads_api_key:
+            for scads_model in (self.scads_image_model, "alias-image-generation"):
+                try:
+                    scads_url = f"{self.scads_base_url}/images/generations"
+                    logger.info(f"Generating Living Tapestry via ScaDS.AI ({scads_model})...")
+                    res = await self._client.post(
+                        scads_url,
+                        headers={
+                            "Authorization": f"Bearer {self.scads_api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={
+                            "model": scads_model,
+                            "prompt": prompt,
+                            "n": 1,
+                            "size": "512x512",
+                        },
+                    )
+                    if res.status_code == 200:
+                        body = res.json()
+                        items = body.get("data") or []
+                        if items and isinstance(items[0], dict):
+                            b64 = items[0].get("b64_json") or items[0].get("image_base64")
+                            url = items[0].get("url") or items[0].get("image_url")
+                            if b64:
+                                logger.info(f"ScaDS.AI ({scads_model}) image generation succeeded!")
+                                return {
+                                    "prompt": prompt,
+                                    "image_url": None,
+                                    "image_base64": self._format_b64_data_uri(b64),
+                                }
+                            if url:
+                                logger.info(f"ScaDS.AI ({scads_model}) image URL generation succeeded!")
+                                return {
+                                    "prompt": prompt,
+                                    "image_url": url,
+                                    "image_base64": None,
+                                }
+                except Exception as e:
+                    logger.warning(f"ScaDS.AI image generation ({scads_model}) failed: {e}")
+
+        # Method 3: Worker Endpoint
         if self.api_token:
             try:
                 headers = {"Authorization": f"Bearer {self.api_token}", "Content-Type": "application/json"}

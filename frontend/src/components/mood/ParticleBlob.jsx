@@ -178,9 +178,9 @@ export default function ParticleBlob({
         d.sx = cx + fx * spread;
         d.sy = cy - fy * spread;
         d.fz = fz;
-        d.hue = 185 + fy * 40 + n * 35 + live.hueShift;
-        d.sat = 80 + depth * 20;
-        d.lit = 45 + depth * 30;
+        d.hue = 28 + fy * 42 + n * 48 + live.hueShift;
+        d.sat = 58 + depth * 22;
+        d.lit = 48 + depth * 26;
         d.size = (0.6 + depth * 1.4 + (kind === "idle" ? 0 : 0.3 * micAmp)) * Math.max(0.85, scale);
       }
 

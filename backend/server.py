@@ -75,6 +75,7 @@ store = SQLiteStore()
 groq_service: Optional[GroqService] = None
 image_generation_service: Optional[ImageGenerationService] = None
 groq_client: Optional[AsyncOpenAI] = None
+scads_client: Optional[AsyncOpenAI] = None
 _agent_proc: Optional[asyncio.subprocess.Process] = None
 
 
@@ -92,24 +93,37 @@ def _init_groq_client() -> Optional[AsyncOpenAI]:
     return AsyncOpenAI(api_key=api_key, base_url=os.environ.get("GROQ_BASE_URL", "https://api.groq.com/openai/v1"))
 
 
+def _init_scads_client() -> Optional[AsyncOpenAI]:
+    api_key = os.environ.get("SCADS_API_KEY", "").strip()
+    if not api_key:
+        return None
+    return AsyncOpenAI(api_key=api_key, base_url=os.environ.get("SCADS_BASE_URL", "https://llm.scads.ai/v1"))
+
+
+async def _ensure_services() -> None:
+    global groq_service, image_generation_service, groq_client, scads_client
+    await store.init()
+    if groq_service is None:
+        try:
+            groq_service = GroqService()
+        except GroqError as e:
+            logger.error(f"LLM service initialization failed: {e}")
+    if image_generation_service is None:
+        try:
+            image_generation_service = ImageGenerationService()
+        except Exception as e:
+            logger.warning(f"Image generation service initialization failed: {e}")
+    if groq_client is None:
+        groq_client = _init_groq_client()
+    if scads_client is None:
+        scads_client = _init_scads_client()
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    global groq_service, image_generation_service, groq_client, _agent_proc
+    global groq_service, image_generation_service, groq_client, scads_client, _agent_proc
 
-    await store.init()
-    try:
-        groq_service = GroqService()
-    except GroqError as e:
-        groq_service = None
-        logger.error(f"Groq service initialization failed: {e}")
-
-    try:
-        image_generation_service = ImageGenerationService()
-    except Exception as e:
-        image_generation_service = None
-        logger.warning(f"Image generation service initialization failed: {e}")
-
-    groq_client = _init_groq_client()
+    await _ensure_services()
 
     auto_start_agent = get_bool_env("AUTO_START_LIVEKIT_AGENT", default=True)
     if auto_start_agent and _livekit_configured():
@@ -274,6 +288,15 @@ JSON_FORMAT = """
   "response_text": "The inbox grew a tiny paper hat,\\nthen sneezed confetti on the plan.\\nYou laughed, and half the worry sat\\ndown like a very polite fan.\\n\\nSo brew the tea, unclench the jaw,\\nthe plot twist likes you more than dread.\\nTomorrow's dragon is a straw\\none, and you already drew its bed.",
   "valence": 0.65,
   "arousal": 0.30,
+  "alignment": {
+    "score": 0.76,
+    "has_mismatch": false,
+    "words_alignment": 84,
+    "voice_alignment": 74,
+    "visual_alignment": 79,
+    "contradiction_notice": "Your phrasing carries humor and composure while a quiet undercurrent of tiredness asks for a pause.",
+    "subconscious_insight": "Playful composure + quiet need for rest"
+  },
   "cognitive_reframing": {
     "distortion_detected": "Quiet Overload",
     "explanation": "Carrying heavy expectations without recognizing current resilience.",
@@ -291,12 +314,42 @@ JSON_FORMAT = """
 SUPPORTED_LANGUAGES = {"en", "de", "fr", "it", "es", "zh"}
 
 LANG_INSTRUCTIONS = {
-    "en": "Respond entirely in English. The poem, cognitive_reframing text, and tapestry_prompt must be English.",
-    "de": "Antworte in der Sprache des Gedichts auf Deutsch. Die JSON-Schlüssel bleiben Englisch. response_text, cognitive_reframing und tapestry_prompt sind auf Deutsch. Das Gedicht bleibt lustig und optimistisch.",
-    "fr": "Réponds en français. Les clés JSON restent en anglais. response_text, cognitive_reframing et tapestry_prompt sont en français. Le poème reste drôle et optimiste.",
-    "it": "Rispondi in italiano. Le chiavi JSON restano in inglese. response_text, cognitive_reframing e tapestry_prompt sono in italiano. La poesia resta divertente e ottimista.",
-    "es": "Responde en español. Las claves JSON siguen en inglés. response_text, cognitive_reframing y tapestry_prompt van en español. El poema sigue siendo divertido y optimista.",
-    "zh": "请用普通话回答。JSON 键名保持英文。response_text、cognitive_reframing 和 tapestry_prompt 使用简体中文。诗依然幽默、乐观，仍是两节、每节四行。",
+    "en": (
+        "CRITICAL LANGUAGE RULE: Respond ENTIRELY in English, even if the user's input is in another language. "
+        "Keep JSON keys in English. Every text value — response_text, alignment.contradiction_notice, "
+        "alignment.subconscious_insight, cognitive_reframing.distortion_detected, cognitive_reframing.explanation, "
+        "cognitive_reframing.reframing_prompts, and cognitive_reframing.grounding_affirmation — MUST be in English."
+    ),
+    "de": (
+        "WICHTIGE SPRACHREGEL: Antworte VOLLSTÄNDIG auf Deutsch, auch wenn die Eingabe des Nutzers auf Englisch oder einer anderen Sprache ist! "
+        "Die JSON-Schlüssel bleiben auf Englisch. JEDES Textfeld — response_text (das Gedicht), alignment.contradiction_notice, "
+        "alignment.subconscious_insight, cognitive_reframing.distortion_detected, cognitive_reframing.explanation, "
+        "cognitive_reframing.reframing_prompts und cognitive_reframing.grounding_affirmation — MUSS auf Deutsch verfasst sein."
+    ),
+    "fr": (
+        "RÈGLE DE LANGUE CRITIQUE : Réponds ENTIÈREMENT en français, même si le texte de l'utilisateur est en anglais ou dans une autre langue ! "
+        "Les clés JSON restent en anglais. CHAQUE valeur texte — response_text (le poème), alignment.contradiction_notice, "
+        "alignment.subconscious_insight, cognitive_reframing.distortion_detected, cognitive_reframing.explanation, "
+        "cognitive_reframing.reframing_prompts et cognitive_reframing.grounding_affirmation — DOIT être rédigée en français."
+    ),
+    "it": (
+        "REGOLA LINGUISTICA FONDAMENTALE: Rispondi INTERAMENTE in italiano, anche se il testo dell'utente è in inglese o in un'altra lingua! "
+        "Le chiavi JSON restano in inglese. OGNI valore di testo — response_text (la poesia), alignment.contradiction_notice, "
+        "alignment.subconscious_insight, cognitive_reframing.distortion_detected, cognitive_reframing.explanation, "
+        "cognitive_reframing.reframing_prompts e cognitive_reframing.grounding_affirmation — DEVE essere scritto in italiano."
+    ),
+    "es": (
+        "REGLA DE IDIOMA CRÍTICA: Responde COMPLETAMENTE en español, ¡incluso si el texto del usuario está en inglés o en otro idioma! "
+        "Las claves JSON permanecen en inglés. CADA valor de texto — response_text (el poema), alignment.contradiction_notice, "
+        "alignment.subconscious_insight, cognitive_reframing.distortion_detected, cognitive_reframing.explanation, "
+        "cognitive_reframing.reframing_prompts y cognitive_reframing.grounding_affirmation — DEBE estar escrito en español."
+    ),
+    "zh": (
+        "关键语言规则：即使输入内容是英文或其他语言，也必须完全使用简体中文回答！JSON 键名保持英文。"
+        "所有文本字段——response_text（诗歌）、alignment.contradiction_notice、alignment.subconscious_insight、"
+        "cognitive_reframing.distortion_detected、cognitive_reframing.explanation、cognitive_reframing.reframing_prompts "
+        "以及 cognitive_reframing.grounding_affirmation——都必须使用简体中文撰写。"
+    ),
 }
 
 STYLE_GUIDES = {
@@ -323,7 +376,8 @@ Emotion rules:
 - tapestry_prompt describes a funny optimistic picture of THEIR scene (the objects and actions they named), not a generic landscape. No text in the image.
 - Never use cold clinical terminology.
 - Output valence (-1.0 to 1.0) and arousal (0.0 to 1.0).
-- Provide cognitive_reframing with gentle perspective-shift prompts and a grounding affirmation."""
+- Provide alignment with specific, non-generic contradiction_notice and subconscious_insight tailored to this exact input, plus integer percentages (0-100) for words_alignment, voice_alignment, and visual_alignment.
+- Provide cognitive_reframing with gentle perspective-shift prompts and a grounding affirmation tailored to this exact input."""
 
 def _style_line(style: str) -> str:
     return STYLE_GUIDES.get(style, STYLE_GUIDES["warm"])
@@ -534,6 +588,33 @@ def make_fallback(dominant_mood: str = "joy", content: str = "", language: str =
         "es": f"Una ilustración divertida y optimista de este momento exacto: {scene}. Brillante, concreta, sin texto, sin océano ni galaxia genéricos.",
         "zh": f"一幅有趣而乐观的插画，画的就是这一刻：{scene}。明亮、具体、没有文字，不要泛泛的海洋或星系。",
     }
+    alignments = {
+        "en": {
+            "contradiction_notice": "Your words sound composed, while an undertone of quiet fatigue asks for rest.",
+            "subconscious_insight": "Steady composure + gentle reflection + need for unhurried space",
+        },
+        "de": {
+            "contradiction_notice": "Deine Worte klingen gefasst, während ein leiser Unterton nach Ruhe fragt.",
+            "subconscious_insight": "Ruhige Fassung + sanfte Reflexion + Wunsch nach unverstellter Pause",
+        },
+        "fr": {
+            "contradiction_notice": "Tes mots semblent posés, tandis qu'une douce fatigue demande un instant de calme.",
+            "subconscious_insight": "Calme apparent + réflexion sincère + besoin de repos paisible",
+        },
+        "it": {
+            "contradiction_notice": "Le tue parole suonano composte, mentre un sottotono silenzioso chiede riposo.",
+            "subconscious_insight": "Compostezza + riflessione sincera + bisogno di spazio tranquillo",
+        },
+        "es": {
+            "contradiction_notice": "Tus palabras suenan serenas, mientras un matiz silencioso pide descanso.",
+            "subconscious_insight": "Calma exterior + reflexión sincera + necesidad de pausa",
+        },
+        "zh": {
+            "contradiction_notice": "你的话语听起来从容平静，但潜藏的一丝倦意正在轻声请求休息。",
+            "subconscious_insight": "外在从容 + 内省时刻 + 对安静空间的渴望",
+        },
+    }
+    align_text = alignments.get(language, alignments["en"])
     return {
         "emotions": [
             {"emotion": "joy", "score": 0.34},
@@ -556,8 +637,8 @@ def make_fallback(dominant_mood: str = "joy", content: str = "", language: str =
             "words_alignment": 68,
             "voice_alignment": 84,
             "visual_alignment": 87,
-            "contradiction_notice": "Your words sound relieved, but your voice and drawing carry more tension.",
-            "subconscious_insight": "Relief + excitement + underlying exhaustion"
+            "contradiction_notice": align_text["contradiction_notice"],
+            "subconscious_insight": align_text["subconscious_insight"],
         },
         "cognitive_reframing": reframes[language],
         "tapestry_prompt": tapestries[language],
@@ -576,6 +657,7 @@ async def health():
 @api_router.post("/analyze")
 async def analyze_mood(request: MoodAnalysisRequest):
     try:
+        await _ensure_services()
         lang_instruction = LANG_INSTRUCTIONS.get(request.language, LANG_INSTRUCTIONS["en"])
 
         image_data_url = None
@@ -614,6 +696,18 @@ async def analyze_mood(request: MoodAnalysisRequest):
         elif request.input_type == "fusion":
             input_preview = f"[Fusion: Drawing + Voice '{request.spoken_text or 'Audio'[:30]}']"
 
+        fallback_content = (
+            "" if request.input_type == "drawing"
+            else (request.spoken_text or "") if request.input_type == "fusion"
+            else request.content
+        )
+        fallback_defaults = make_fallback(
+            content=fallback_content,
+            language=request.language,
+        )
+        alignment_dict = result.get("alignment") or fallback_defaults["alignment"]
+        reframing_dict = result.get("cognitive_reframing") or fallback_defaults["cognitive_reframing"]
+
         analysis = MoodAnalysisResponse(
             input_type=request.input_type,
             input_preview=input_preview,
@@ -625,10 +719,10 @@ async def analyze_mood(request: MoodAnalysisRequest):
             valence=result.get("valence", 0.5),
             arousal=result.get("arousal", 0.4),
             affect_quadrant=result.get("affect_quadrant", "Serenity / Calm Glow"),
-            alignment=AlignmentData(**result["alignment"]) if result.get("alignment") else None,
-            cognitive_reframing=CognitiveReframing(**result["cognitive_reframing"]) if result.get("cognitive_reframing") else None,
-            tapestry_prompt=result.get("tapestry_prompt"),
-            fusion_alignment=result.get("fusion_alignment"),
+            alignment=AlignmentData(**alignment_dict),
+            cognitive_reframing=CognitiveReframing(**reframing_dict),
+            tapestry_prompt=result.get("tapestry_prompt") or fallback_defaults["tapestry_prompt"],
+            fusion_alignment=result.get("fusion_alignment") or fallback_defaults["fusion_alignment"],
         )
 
         doc = analysis.model_dump()
@@ -639,11 +733,22 @@ async def analyze_mood(request: MoodAnalysisRequest):
         logger.error(f"Analysis error type={type(e).__name__}: {e}")
         import traceback
         logger.error(traceback.format_exc())
+        fallback_content = (
+            "" if request.input_type == "drawing"
+            else (request.spoken_text or "") if request.input_type == "fusion"
+            else request.content
+        )
         result = make_fallback(
-            content=request.content if request.input_type != "drawing" else "",
+            content=fallback_content,
             language=request.language,
         )
-        input_preview = "[Drawing]" if request.input_type == "drawing" else request.content[:100]
+        if request.input_type == "drawing":
+            input_preview = "[Drawing]"
+        elif request.input_type == "fusion":
+            spoken_preview = (request.spoken_text or "Audio")[:30]
+            input_preview = f"[Fusion: Drawing + Voice '{spoken_preview}']"
+        else:
+            input_preview = request.content[:100] + "..." if len(request.content) > 100 else request.content
         fallback = MoodAnalysisResponse(
             input_type=request.input_type,
             input_preview=input_preview,
@@ -655,6 +760,7 @@ async def analyze_mood(request: MoodAnalysisRequest):
             valence=result["valence"],
             arousal=result["arousal"],
             affect_quadrant=result["affect_quadrant"],
+            alignment=AlignmentData(**result["alignment"]),
             cognitive_reframing=CognitiveReframing(**result["cognitive_reframing"]),
             tapestry_prompt=result["tapestry_prompt"],
             fusion_alignment=result["fusion_alignment"],
@@ -689,21 +795,39 @@ async def transcribe_audio(
     file: UploadFile = File(...),
     language: str = Form(default="en"),
 ):
-    if groq_client is None:
-        raise HTTPException(status_code=503, detail="Transcription service not configured — set GROQ_API_KEY")
+    await _ensure_services()
+    if groq_client is None and scads_client is None:
+        raise HTTPException(status_code=503, detail="Transcription service not configured — set GROQ_API_KEY or SCADS_API_KEY")
     audio_bytes = await file.read()
-    try:
-        result = await groq_client.audio.transcriptions.create(
-            file=(file.filename or "audio.webm", audio_bytes, file.content_type or "audio/webm"),
-            model="whisper-large-v3-turbo",
-            language=language if language in SUPPORTED_LANGUAGES else "en",
-            response_format="text",
-        )
-        text = result if isinstance(result, str) else getattr(result, "text", str(result))
-        return {"text": text}
-    except Exception as e:
-        logger.error(f"Groq transcription error: {e}")
-        raise HTTPException(status_code=502, detail="Transcription failed")
+    lang_code = language if language in SUPPORTED_LANGUAGES else "en"
+
+    if groq_client is not None:
+        try:
+            result = await groq_client.audio.transcriptions.create(
+                file=(file.filename or "audio.webm", audio_bytes, file.content_type or "audio/webm"),
+                model="whisper-large-v3-turbo",
+                language=lang_code,
+                response_format="text",
+            )
+            text = result if isinstance(result, str) else getattr(result, "text", str(result))
+            return {"text": text}
+        except Exception as e:
+            logger.warning(f"Groq transcription error, failing over to ScaDS.AI: {e}")
+
+    if scads_client is not None:
+        try:
+            result = await scads_client.audio.transcriptions.create(
+                file=(file.filename or "audio.webm", audio_bytes, file.content_type or "audio/webm"),
+                model="openai/whisper-large-v3-turbo",
+                language=lang_code,
+                response_format="text",
+            )
+            text = result if isinstance(result, str) else getattr(result, "text", str(result))
+            return {"text": text}
+        except Exception as e:
+            logger.error(f"ScaDS.AI transcription error: {e}")
+
+    raise HTTPException(status_code=502, detail="Transcription failed")
 
 
 @api_router.get("/history")

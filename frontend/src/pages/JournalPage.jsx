@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Trash2,
@@ -9,8 +9,7 @@ import {
   Star,
   Search,
   Heart,
-  Sparkles,
-  Quote,
+  Compass,
 } from "lucide-react";
 import { API_BASE } from "@/lib/api";
 import axios from "axios";
@@ -19,7 +18,7 @@ const CATEGORIES = [
   { id: "all", labelKey: "journalAll", icon: Star },
   { id: "calm", labelKey: "journalCalm", icon: Heart },
   { id: "letters", labelKey: "journalLetters", icon: BookOpen },
-  { id: "insights", labelKey: "journalInsights", icon: Sparkles },
+  { id: "insights", labelKey: "journalInsights", icon: Compass },
 ];
 
 const JournalPage = ({ onBack, t, embedded = false }) => {
@@ -63,8 +62,8 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
 
     if (!matchesSearch) return false;
     if (activeCategory === "calm") {
-      return (
-        ["neutral", "calmness", "calm", "joy"].includes(entry.dominant_mood?.toLowerCase())
+      return ["neutral", "calmness", "calm", "joy"].includes(
+        entry.dominant_mood?.toLowerCase()
       );
     }
     if (activeCategory === "letters") {
@@ -79,60 +78,85 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12" data-testid="journal-page">
       {/* Header & Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b"
+        style={{ borderColor: "var(--divider-subtle)" }}
+      >
         <div>
           <div className="flex items-center gap-3">
             {!embedded && (
               <button
+                type="button"
                 data-testid="journal-back-btn"
                 onClick={onBack}
-                className="p-2 rounded-full text-white/60 hover:text-white"
+                className="p-2 rounded-full transition-colors"
+                style={{
+                  background: "var(--control-bg)",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-secondary)",
+                }}
               >
-                <ArrowLeft size={18} />
+                <ArrowLeft size={16} />
               </button>
             )}
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight">
+            <h2
+              className="font-display text-3xl md:text-4xl font-medium tracking-tight"
+              style={{ color: "var(--text-primary)" }}
+            >
               {t("collectionsTitle")}
             </h2>
           </div>
-          <p className="text-sm text-white/60 mt-1">
-            Your personal digital sanctuary of saved reflections and meaningful moments.
+          <p className="text-xs md:text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+            Your personal sanctuary of saved reflections, poems, and private margin notes.
           </p>
         </div>
 
         {/* Search Input */}
         <div
-          className="flex items-center gap-2.5 px-4 py-2 rounded-full border border-white/10 w-full md:w-64"
-          style={{ background: "rgba(255, 255, 255, 0.04)" }}
+          className="flex items-center gap-2.5 px-4 py-2 rounded-full w-full md:w-64"
+          style={{
+            background: "var(--control-bg)",
+            border: "1px solid var(--border-subtle)",
+          }}
         >
-          <Search size={14} className="text-white/40" />
+          <Search size={14} style={{ color: "var(--text-muted)" }} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t("searchJournal")}
-            className="w-full bg-transparent outline-none text-xs text-white placeholder-white/40"
+            className="w-full bg-transparent outline-none text-xs"
+            style={{ color: "var(--text-primary)" }}
           />
         </div>
       </div>
 
       {/* Category Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <div
+        className="flex items-center gap-2 overflow-x-auto pb-1"
+        style={{ scrollbarWidth: "none" }}
+      >
         {CATEGORIES.map((cat) => {
           const Icon = cat.icon;
           const active = activeCategory === cat.id;
           return (
             <button
+              type="button"
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all shrink-0"
               style={{
-                background: active ? "rgba(155, 108, 255, 0.22)" : "rgba(255, 255, 255, 0.03)",
-                border: active ? "1px solid rgba(155, 108, 255, 0.45)" : "1px solid rgba(255, 255, 255, 0.08)",
-                color: active ? "#F7F7FF" : "var(--text-muted)",
+                background: active ? "var(--chip-active-bg)" : "var(--control-bg)",
+                border: active
+                  ? "1px solid var(--border-strong)"
+                  : "1px solid var(--border-subtle)",
+                color: active ? "var(--text-primary)" : "var(--text-secondary)",
               }}
             >
-              <Icon size={14} className={active ? "text-violet-400" : "text-white/40"} />
+              <Icon
+                size={13}
+                style={{ color: active ? "var(--aura-gold)" : "var(--text-muted)" }}
+              />
               <span>{t(cat.labelKey)}</span>
             </button>
           );
@@ -142,32 +166,49 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
       {/* Entries List */}
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="w-8 h-8 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+          <div
+            className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
+            style={{ borderColor: "var(--aura-gold)", borderTopColor: "transparent" }}
+          />
         </div>
       ) : filteredEntries.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center" data-testid="empty-journal">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/[0.04] border border-white/[0.08] mb-4">
-            <BookOpen size={24} className="text-white/40" />
+        <div
+          className="flex flex-col items-center justify-center py-20 text-center"
+          data-testid="empty-journal"
+        >
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+            style={{
+              background: "var(--control-bg)",
+              border: "1px solid var(--border-strong)",
+              color: "var(--aura-gold)",
+            }}
+          >
+            <BookOpen size={24} />
           </div>
-          <p className="text-lg font-medium text-white/80">{t("emptyJournal")}</p>
-          <p className="text-xs text-white/40 mt-1 max-w-sm">{t("emptyJournalHint")}</p>
+          <p className="font-display text-2xl font-medium" style={{ color: "var(--text-primary)" }}>
+            {t("emptyJournal")}
+          </p>
+          <p className="text-xs mt-1 max-w-sm" style={{ color: "var(--text-muted)" }}>
+            {t("emptyJournalHint")}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredEntries.map((entry, idx) => {
             const isExpanded = expandedId === entry.id;
-            const moodColor = "#9B6CFF";
             return (
               <motion.div
                 key={entry.id || idx}
                 data-testid={`journal-entry-${idx}`}
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}
-                className="p-5 rounded-3xl border border-white/[0.08] transition-all duration-300 relative group cursor-pointer"
+                className="p-5 rounded-2xl transition-all duration-300 relative group cursor-pointer"
                 style={{
-                  background: "linear-gradient(160deg, rgba(12, 23, 48, 0.8), rgba(7, 17, 38, 0.95))",
-                  boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+                  background: "var(--card-glass-bg)",
+                  border: "1px solid var(--card-glass-border)",
+                  boxShadow: "var(--card-glass-shadow)",
                 }}
                 onClick={() => setExpandedId(isExpanded ? null : entry.id)}
               >
@@ -175,16 +216,19 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span
-                      className="px-3 py-1 rounded-full text-xs font-semibold capitalize"
+                      className="px-3 py-0.5 rounded-full text-xs font-mono font-medium capitalize"
                       style={{
-                        background: "rgba(155, 108, 255, 0.16)",
-                        color: "#D8B4FE",
-                        border: "1px solid rgba(155, 108, 255, 0.3)",
+                        background: "var(--chip-active-bg)",
+                        color: "var(--aura-gold)",
+                        border: "1px solid var(--border-strong)",
                       }}
                     >
                       {t(entry.dominant_mood?.toLowerCase()) || entry.dominant_mood}
                     </span>
-                    <div className="flex items-center gap-1.5 text-[11px] text-white/50 font-mono">
+                    <div
+                      className="flex items-center gap-1.5 text-[11px] font-mono"
+                      style={{ color: "var(--text-muted)" }}
+                    >
                       <Calendar size={11} />
                       <span>
                         {new Date(entry.timestamp).toLocaleDateString("en-US", {
@@ -196,12 +240,14 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
                   </div>
 
                   <button
+                    type="button"
                     data-testid={`delete-entry-${idx}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteEntry(entry.id);
                     }}
-                    className="p-1.5 rounded-full text-white/30 hover:text-red-400 transition-colors"
+                    className="p-1.5 rounded-full transition-colors"
+                    style={{ color: "var(--text-muted)" }}
                     title={t("removeFromCollections")}
                   >
                     <Trash2 size={14} />
@@ -211,19 +257,32 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
                 {/* Reflection Text */}
                 <div className="relative mb-3">
                   <p
-                    className={`font-display text-sm md:text-base leading-relaxed text-white/90 ${
-                      isExpanded ? "" : "line-clamp-3"
+                    className={`font-display text-base leading-relaxed italic whitespace-pre-line ${
+                      isExpanded ? "" : "line-clamp-4"
                     }`}
+                    style={{ color: "var(--text-primary)" }}
                   >
-                    {entry.response_text}
+                    {String(entry.response_text || "").replace(/\\n/g, "\n")}
                   </p>
                 </div>
 
                 {/* Personal Note (if added) */}
                 {entry.journal_note && (
-                  <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-start gap-2.5 mt-3">
-                    <StickyNote size={13} className="text-violet-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-white/70 italic">"{entry.journal_note}"</p>
+                  <div
+                    className="p-3 rounded-xl flex items-start gap-2.5 mt-3"
+                    style={{
+                      background: "var(--control-bg)",
+                      border: "1px solid var(--border-subtle)",
+                    }}
+                  >
+                    <StickyNote
+                      size={13}
+                      style={{ color: "var(--aura-gold)" }}
+                      className="shrink-0 mt-0.5"
+                    />
+                    <p className="text-xs italic" style={{ color: "var(--text-secondary)" }}>
+                      “{entry.journal_note}”
+                    </p>
                   </div>
                 )}
               </motion.div>
@@ -236,4 +295,3 @@ const JournalPage = ({ onBack, t, embedded = false }) => {
 };
 
 export default JournalPage;
-

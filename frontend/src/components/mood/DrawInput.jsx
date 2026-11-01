@@ -8,36 +8,41 @@ import {
   Redo2,
   Trash2,
   Loader2,
-  Sparkles,
-  Shield,
-  Eye,
   Mic,
   MicOff,
   Zap,
-  Volume2,
+  ArrowUpRight,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { speechLocale } from "@/lib/languages";
 
 const PALETTE = [
-  { id: "purple", color: "#A855F7" },
-  { id: "pink", color: "#EC4899" },
-  { id: "blue", color: "#3B82F6" },
-  { id: "teal", color: "#10B981" },
-  { id: "amber", color: "#F59E0B" },
-  { id: "dark", color: "#1E1B4B" },
-  { id: "slate", color: "#64748B" },
+  { id: "amber", label: "Warm Ochre", color: "#D4A373" },
+  { id: "terracotta", label: "Terracotta", color: "#E07A5F" },
+  { id: "sage", label: "Botanical Sage", color: "#81B29A" },
+  { id: "cerulean", label: "Cerulean Slate", color: "#7CA1C4" },
+  { id: "violet", label: "Twilight Iris", color: "#9F7AEA" },
+  { id: "sun", label: "Sunlit Gold", color: "#E9C46A" },
+  { id: "charcoal", label: "Graphite", color: "#64748B" },
+];
+
+const STROKE_SIZES = [
+  { id: "fine", label: "Fine", value: 3 },
+  { id: "medium", label: "Med", value: 6 },
+  { id: "bold", label: "Bold", value: 11 },
 ];
 
 export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
-  const canvasBg = "#071126";
+  const { theme = "dark" } = useTheme();
+  const canvasBg =
+    theme === "light" ? "#FAF6EE" : theme === "romantic" ? "#FFF6F8" : "#11131A";
 
   const canvasRef = useRef(null);
   const [tool, setTool] = useState("brush");
-  const [brushColor, setBrushColor] = useState("#A855F7");
-  const [brushSize, setBrushSize] = useState(4);
+  const [brushColor, setBrushColor] = useState("#D4A373");
+  const [brushSize, setBrushSize] = useState(6);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 
   // Cross-Modal Fusion voice state
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
@@ -68,7 +73,7 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
         historyRef.current = [snapshot];
         historyIndexRef.current = 0;
       } catch (e) {
-        // Safe fallback
+        // Safe fallback in test environment
       }
     }
   }, [canvasBg]);
@@ -77,7 +82,6 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
     initCanvas();
   }, [initCanvas]);
 
-  // Handle Speech Recognition for Cross-Modal Fusion
   const toggleVoiceRecording = () => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -169,6 +173,7 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const rect = canvas.getBoundingClientRect();
+    ctx.shadowBlur = 0;
     ctx.fillStyle = canvasBg;
     ctx.fillRect(0, 0, rect.width, rect.height);
     setHasDrawn(false);
@@ -198,7 +203,6 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
     const pos = getCanvasPos(e);
     setIsDrawing(true);
     setHasDrawn(true);
-    setStartPos(pos);
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -214,8 +218,20 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
     const ctx = canvas.getContext("2d");
     const pos = getCanvasPos(e);
 
-    ctx.strokeStyle = tool === "eraser" ? canvasBg : brushColor;
-    ctx.lineWidth = tool === "eraser" ? brushSize * 4 : brushSize;
+    if (tool === "eraser") {
+      ctx.strokeStyle = canvasBg;
+      ctx.lineWidth = brushSize * 4.5;
+      ctx.shadowBlur = 0;
+    } else if (tool === "pen") {
+      ctx.strokeStyle = brushColor;
+      ctx.lineWidth = Math.max(1.5, brushSize * 0.45);
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.strokeStyle = brushColor;
+      ctx.lineWidth = brushSize * 1.4;
+      ctx.shadowColor = brushColor;
+      ctx.shadowBlur = 3;
+    }
 
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
@@ -234,123 +250,159 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
     const dataUrl = canvas.toDataURL("image/png");
 
     if (spokenTranscript.trim().length > 0) {
-      // Cross-Modal Fusion mode (Drawing + Spoken Voice)
       onAnalyze("fusion", dataUrl, spokenTranscript.trim());
     } else {
-      // Standard drawing mode
       onAnalyze("drawing", dataUrl);
     }
   };
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto" data-testid="draw-input-component">
-      {/* Top Toolbar */}
+    <div className="space-y-4 w-full" data-testid="draw-input-component">
+      {/* Atelier Instrument Toolbar */}
       <div
-        className="p-3.5 sm:p-4 rounded-3xl backdrop-blur-2xl flex flex-wrap items-center justify-between gap-4"
+        className="p-3.5 sm:p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3"
         style={{
           background: "var(--card-glass-bg)",
           border: "1px solid var(--card-glass-border)",
           boxShadow: "var(--card-glass-shadow)",
         }}
       >
-        {/* Tool Selectors */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setTool("brush")}
-            className={`p-2.5 rounded-2xl transition-all ${
-              tool === "brush"
-                ? "bg-violet-500/25 text-violet-300 border border-violet-500/40"
-                : "text-white/60 hover:text-white hover:bg-white/5"
-            }`}
-            title="Brush Tool"
-          >
-            <Brush size={16} />
-          </button>
-          <button
-            onClick={() => setTool("pen")}
-            className={`p-2.5 rounded-2xl transition-all ${
-              tool === "pen"
-                ? "bg-violet-500/25 text-violet-300 border border-violet-500/40"
-                : "text-white/60 hover:text-white hover:bg-white/5"
-            }`}
-            title="Fine Pen"
-          >
-            <Pen size={16} />
-          </button>
-          <button
-            onClick={() => setTool("eraser")}
-            className={`p-2.5 rounded-2xl transition-all ${
-              tool === "eraser"
-                ? "bg-violet-500/25 text-violet-300 border border-violet-500/40"
-                : "text-white/60 hover:text-white hover:bg-white/5"
-            }`}
-            title="Eraser Tool"
-          >
-            <Eraser size={16} />
-          </button>
+        {/* Tool & Stroke Weight Selectors */}
+        <div className="flex items-center flex-wrap gap-1.5">
+          {[
+            { id: "brush", label: "Brush", icon: Brush },
+            { id: "pen", label: "Fine Nib", icon: Pen },
+            { id: "eraser", label: "Eraser", icon: Eraser },
+          ].map((item) => {
+            const Icon = item.icon;
+            const active = tool === item.id;
+            return (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => setTool(item.id)}
+                className="p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs"
+                style={{
+                  background: active ? "var(--chip-active-bg)" : "var(--control-bg)",
+                  border: active ? "1px solid var(--border-strong)" : "1px solid var(--border-subtle)",
+                  color: active ? "var(--aura-gold)" : "var(--text-secondary)",
+                }}
+                title={item.label}
+                aria-label={item.label}
+              >
+                <Icon size={15} />
+              </button>
+            );
+          })}
 
-          <div className="w-[1px] h-5 bg-white/10 mx-1" />
+          <div className="w-[1px] h-5 mx-1" style={{ background: "var(--border-subtle)" }} />
 
-          {/* Undo/Redo */}
+          {/* Stroke Weight Selector */}
+          <div
+            className="flex items-center p-0.5 rounded-xl"
+            style={{
+              background: "var(--control-bg)",
+              border: "1px solid var(--border-subtle)",
+            }}
+          >
+            {STROKE_SIZES.map((sz) => {
+              const active = brushSize === sz.value;
+              return (
+                <button
+                  type="button"
+                  key={sz.id}
+                  onClick={() => setBrushSize(sz.value)}
+                  className="px-2 py-1 rounded-lg text-[10px] font-mono transition-all"
+                  style={{
+                    background: active ? "var(--chip-active-bg)" : "transparent",
+                    color: active ? "var(--aura-gold)" : "var(--text-muted)",
+                  }}
+                >
+                  {sz.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="w-[1px] h-5 mx-1" style={{ background: "var(--border-subtle)" }} />
+
+          {/* Undo / Redo / Clear */}
           <button
+            type="button"
             onClick={handleUndo}
             disabled={historyIndexRef.current <= 0}
-            className="p-2 rounded-xl text-white/60 hover:text-white disabled:opacity-30 transition-all"
+            className="p-2 rounded-xl disabled:opacity-30 transition-all"
+            style={{ color: "var(--text-secondary)" }}
             title="Undo"
+            aria-label="Undo"
           >
             <Undo2 size={15} />
           </button>
           <button
+            type="button"
             onClick={handleRedo}
             disabled={historyIndexRef.current >= historyRef.current.length - 1}
-            className="p-2 rounded-xl text-white/60 hover:text-white disabled:opacity-30 transition-all"
+            className="p-2 rounded-xl disabled:opacity-30 transition-all"
+            style={{ color: "var(--text-secondary)" }}
             title="Redo"
+            aria-label="Redo"
           >
             <Redo2 size={15} />
           </button>
           <button
+            type="button"
             onClick={clearCanvas}
-            className="p-2 rounded-xl text-red-400/70 hover:text-red-400 transition-all"
+            className="p-2 rounded-xl transition-all"
+            style={{ color: "var(--aura-terracotta)" }}
             title="Clear Canvas"
+            aria-label="Clear Canvas"
           >
             <Trash2 size={15} />
           </button>
         </div>
 
-        {/* Color Palette */}
+        {/* Pigment Swatches */}
         <div className="flex items-center gap-2">
-          {PALETTE.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => {
-                setBrushColor(p.color);
-                if (tool === "eraser") setTool("brush");
-              }}
-              className={`w-6 h-6 rounded-full transition-transform ${
-                brushColor === p.color && tool !== "eraser"
-                  ? "scale-125 ring-2 ring-white ring-offset-2 ring-offset-slate-900"
-                  : "hover:scale-110"
-              }`}
-              style={{ background: p.color }}
-            />
-          ))}
+          {PALETTE.map((p) => {
+            const selected = brushColor === p.color && tool !== "eraser";
+            return (
+              <button
+                type="button"
+                key={p.id}
+                onClick={() => {
+                  setBrushColor(p.color);
+                  if (tool === "eraser") setTool("brush");
+                }}
+                title={p.label}
+                aria-label={p.label}
+                className="w-6 h-6 rounded-full transition-transform"
+                style={{
+                  background: p.color,
+                  transform: selected ? "scale(1.2)" : "scale(1)",
+                  boxShadow: selected ? "0 0 0 2px var(--bg-base), 0 0 0 4px var(--aura-gold)" : "none",
+                }}
+              />
+            );
+          })}
         </div>
 
         {/* Cross-Modal Voice Recording Toggle */}
         <div className="flex items-center gap-2">
-          <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
+          <button
+            type="button"
             onClick={toggleVoiceRecording}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border ${
-              isVoiceRecording
-                ? "bg-red-500/20 border-red-500/50 text-red-300 shadow-lg animate-pulse"
-                : "bg-white/[0.04] border-white/10 text-white/70 hover:text-white hover:bg-white/[0.08]"
-            }`}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all"
+            style={{
+              background: isVoiceRecording ? "rgba(224, 122, 95, 0.18)" : "var(--control-bg)",
+              border: isVoiceRecording
+                ? "1px solid var(--aura-terracotta)"
+                : "1px solid var(--border-subtle)",
+              color: isVoiceRecording ? "var(--aura-terracotta)" : "var(--text-secondary)",
+            }}
           >
-            {isVoiceRecording ? <Mic size={14} className="text-red-400" /> : <MicOff size={14} />}
+            {isVoiceRecording ? <Mic size={14} /> : <MicOff size={14} />}
             <span>{isVoiceRecording ? "Recording Voice..." : "Speak While Drawing"}</span>
-          </motion.button>
+          </button>
         </div>
       </div>
 
@@ -361,18 +413,26 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="p-3 rounded-2xl backdrop-blur-xl flex items-center justify-between gap-3 border border-violet-500/30"
+            className="p-3 rounded-xl flex items-center justify-between gap-3"
             style={{
-              background: "linear-gradient(135deg, rgba(155, 108, 255, 0.15) 0%, rgba(102, 183, 255, 0.15) 100%)",
+              background: "var(--chip-active-bg)",
+              border: "1px solid var(--border-strong)",
             }}
           >
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <Zap size={15} className="text-violet-400 shrink-0 animate-pulse" />
-              <p className="text-xs text-white/90 truncate font-mono">
+              <Zap size={14} style={{ color: "var(--aura-gold)" }} className="shrink-0" />
+              <p className="text-xs truncate font-mono" style={{ color: "var(--text-primary)" }}>
                 {spokenTranscript || "Listening as you sketch... Speak your thoughts freely."}
               </p>
             </div>
-            <span className="text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 shrink-0">
+            <span
+              className="text-[10px] font-mono uppercase font-semibold px-2 py-0.5 rounded shrink-0"
+              style={{
+                background: "var(--control-bg)",
+                color: "var(--aura-gold)",
+                border: "1px solid var(--border-subtle)",
+              }}
+            >
               Cross-Modal Fusion
             </span>
           </motion.div>
@@ -381,7 +441,7 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
 
       {/* Interactive HTML5 Drawing Canvas Container */}
       <div
-        className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-3xl overflow-hidden shadow-2xl border"
+        className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-2xl overflow-hidden border"
         style={{
           background: canvasBg,
           borderColor: "var(--card-glass-border)",
@@ -403,30 +463,36 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
         {/* Empty Canvas Callout */}
         {!hasDrawn && (
           <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center space-y-2 text-center p-4">
-            <Sparkles size={24} className="text-violet-400/40" />
-            <p className="font-display text-sm sm:text-base text-white/30 font-medium">
-              Draw shapes, textures, or chaotic colors that match your inner feeling
+            <Brush size={22} style={{ color: "var(--aura-gold)", opacity: 0.55 }} />
+            <p
+              className="font-display text-base sm:text-lg font-medium"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Sketch gestures, lines, or color fields that mirror your inner state
             </p>
-            <p className="text-[11px] text-white/20">
-              Toggle 'Speak While Drawing' above to narrate simultaneously
+            <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+              Toggle ‘Speak While Drawing’ above to fuse spoken cadence with visual gesture
             </p>
           </div>
         )}
       </div>
 
       {/* Bottom Submit Action */}
-      <div className="flex items-center justify-between pt-2">
-        <div className="text-xs text-white/50 font-mono">
-          {spokenTranscript.length > 0 ? "⚡ Multimodal Fusion Active (Drawing + Speech)" : "Visual Metaphor Drawing Mode"}
+      <div className="flex items-center justify-between pt-1">
+        <div className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+          {spokenTranscript.length > 0
+            ? "✦ Multimodal Fusion Active (Visual + Spoken)"
+            : "Atelier Canvas // Visual Affect Mode"}
         </div>
 
         <motion.button
+          type="button"
           data-testid="draw-submit-btn"
           disabled={!hasDrawn || isAnalyzing}
           onClick={handleSubmit}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          className="btn-mirror-me flex items-center gap-2.5 px-8 py-3.5 rounded-full text-sm font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="btn-mirror-me flex items-center gap-2.5 px-7 py-3 rounded-full text-sm font-semibold transition-all disabled:opacity-35 disabled:cursor-not-allowed"
         >
           {isAnalyzing ? (
             <>
@@ -435,8 +501,8 @@ export const DrawInput = ({ onAnalyze, isAnalyzing, t, language = "en" }) => {
             </>
           ) : (
             <>
-              <span>{spokenTranscript ? "Synthesize Fusion ✨" : t("mirrorMe")}</span>
-              <Sparkles size={15} />
+              <span>{spokenTranscript ? "Synthesize Fusion" : t("mirrorMe")}</span>
+              <ArrowUpRight size={16} />
             </>
           )}
         </motion.button>

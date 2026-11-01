@@ -41,17 +41,17 @@ export const AmbientControl = ({ mood, label, variant = "fab" }) => {
       <div className="flex items-center gap-3">
         <motion.button
           onClick={togglePlay}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-11 h-11 rounded-full flex items-center justify-center"
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
           style={{
-            background: isPlaying ? "rgba(155,108,255,0.22)" : "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.14)",
-            color: isPlaying ? "#C4B5FD" : "var(--text-primary)",
+            background: isPlaying ? "var(--chip-active-bg)" : "var(--control-bg)",
+            border: isPlaying ? "1px solid var(--border-strong)" : "1px solid var(--border-subtle)",
+            color: isPlaying ? "var(--aura-gold)" : "var(--text-primary)",
           }}
-          aria-label={label}
+          aria-label={label || "Toggle ambient soundscape"}
         >
-          {isPlaying ? <Volume2 size={18} strokeWidth={1.5} /> : <VolumeX size={18} strokeWidth={1.5} />}
+          {isPlaying ? <Volume2 size={17} strokeWidth={1.6} /> : <VolumeX size={17} strokeWidth={1.6} />}
         </motion.button>
         <input
           type="range"
@@ -59,9 +59,76 @@ export const AmbientControl = ({ mood, label, variant = "fab" }) => {
           max="40"
           value={volume}
           onChange={handleVolume}
-          className="w-20"
-          style={{ accentColor: "#9B6CFF" }}
+          className="w-24"
+          style={{ accentColor: "var(--aura-gold)" }}
+          aria-label="Ambient soundscape volume"
         />
+      </div>
+    );
+  }
+
+  if (variant === "header") {
+    return (
+      <div
+        data-testid="ambient-control"
+        className="relative flex items-center gap-1.5"
+        onMouseEnter={() => setShowSlider(true)}
+        onMouseLeave={() => setShowSlider(false)}
+      >
+        <button
+          type="button"
+          data-testid="ambient-toggle-btn"
+          onClick={togglePlay}
+          aria-label={label || "Ambient Soundscape"}
+          title={label || "Ambient Soundscape"}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all"
+          style={{
+            background: isPlaying ? "var(--chip-active-bg)" : "var(--control-bg)",
+            border: isPlaying ? "1px solid var(--border-strong)" : "1px solid var(--border-subtle)",
+            color: isPlaying ? "var(--aura-gold)" : "var(--text-secondary)",
+          }}
+        >
+          {isPlaying ? (
+            <Volume2 size={14} strokeWidth={1.8} />
+          ) : (
+            <VolumeX size={14} strokeWidth={1.6} />
+          )}
+          <span className="hidden lg:inline text-[11px] font-mono">
+            {isPlaying ? "Audio On" : "Audio"}
+          </span>
+        </button>
+
+        <AnimatePresence>
+          {showSlider && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              className="
+                absolute top-full right-0 mt-1.5 px-3 py-2 rounded-xl z-50
+                flex items-center gap-2 shadow-xl
+              "
+              style={{
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border-strong)",
+              }}
+            >
+              <span className="text-[10px] font-mono uppercase tracking-wider whitespace-nowrap" style={{ color: "var(--text-muted)" }}>
+                Vol
+              </span>
+              <input
+                data-testid="ambient-volume-slider"
+                type="range"
+                min="0"
+                max="40"
+                value={volume}
+                onChange={handleVolume}
+                className="w-20"
+                style={{ accentColor: "var(--aura-gold)" }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -95,7 +162,7 @@ export const AmbientControl = ({ mood, label, variant = "fab" }) => {
               value={volume}
               onChange={handleVolume}
               className="w-20"
-              style={{ accentColor: "var(--text-secondary)" }}
+              style={{ accentColor: "var(--aura-gold)" }}
             />
           </motion.div>
         )}
@@ -106,24 +173,19 @@ export const AmbientControl = ({ mood, label, variant = "fab" }) => {
         onClick={togglePlay}
         onMouseEnter={() => setShowSlider(true)}
         onMouseLeave={() => setShowSlider(false)}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300"
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.94 }}
+        className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300"
         style={{
-          background: isPlaying
-            ? "rgba(192,132,252,0.15)"
-            : "var(--control-bg)",
-          border: isPlaying
-            ? "1px solid rgba(192,132,252,0.3)"
-            : "1px solid var(--control-border)",
-          boxShadow: isPlaying ? "0 0 20px rgba(192,132,252,0.2)" : "none",
-          color: isPlaying ? "#C084FC" : "var(--text-muted)",
+          background: isPlaying ? "var(--chip-active-bg)" : "var(--control-bg)",
+          border: isPlaying ? "1px solid var(--border-strong)" : "1px solid var(--control-border)",
+          color: isPlaying ? "var(--aura-gold)" : "var(--text-muted)",
         }}
       >
         {isPlaying ? (
-          <Volume2 size={18} strokeWidth={1.5} />
+          <Volume2 size={17} strokeWidth={1.6} />
         ) : (
-          <VolumeX size={18} strokeWidth={1.5} />
+          <VolumeX size={17} strokeWidth={1.6} />
         )}
       </motion.button>
     </div>

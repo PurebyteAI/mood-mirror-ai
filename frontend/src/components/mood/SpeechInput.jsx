@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Mic, MicOff, Loader2, Sparkles, User, Heart, Clock, ShieldCheck, ArrowRight } from "lucide-react";
+import { Mic, MicOff, Loader2, User, Heart, Clock, ArrowUpRight, Radio } from "lucide-react";
 import axios from "axios";
 import { API_BASE } from "@/lib/api";
 import { isSupportedLanguage } from "@/lib/languages";
@@ -27,7 +27,7 @@ const ReactiveWaveform = ({ isRecording, analyserRef }) => {
       ctx.clearRect(0, 0, rect.width, rect.height);
 
       const barCount = 48;
-      const barWidth = 3;
+      const barWidth = 2.5;
       const gap = (rect.width - barCount * barWidth) / (barCount - 1);
       const centerY = rect.height / 2;
 
@@ -40,21 +40,21 @@ const ReactiveWaveform = ({ isRecording, analyserRef }) => {
         const distFromCenter = Math.abs(i - barCount / 2) / (barCount / 2);
         const curve = Math.cos(distFromCenter * Math.PI * 0.5);
 
-        let height = 4;
+        let height = 3.5;
         if (isRecording) {
           const freqIndex = Math.min(freqData.length - 1, Math.floor((i / barCount) * freqData.length));
           const amp = freqData[freqIndex] / 255;
           const wave = Math.sin(t * 8 + i * 0.4) * 0.3 + 0.7;
-          height = Math.max(4, (amp * 50 + wave * 14) * curve);
+          height = Math.max(4, (amp * 48 + wave * 12) * curve);
         } else {
-          height = Math.max(3, (Math.sin(t * 2 + i * 0.2) * 3 + 4) * curve);
+          height = Math.max(2.5, (Math.sin(t * 2 + i * 0.2) * 2.5 + 3.5) * curve);
         }
 
         const x = i * (barWidth + gap);
         const gradient = ctx.createLinearGradient(0, centerY - height, 0, centerY + height);
-        gradient.addColorStop(0, "#C084FC");
-        gradient.addColorStop(0.5, "#60A5FA");
-        gradient.addColorStop(1, "#34D399");
+        gradient.addColorStop(0, "#D4A373");
+        gradient.addColorStop(0.5, "#E07A5F");
+        gradient.addColorStop(1, "#81B29A");
 
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -202,10 +202,10 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
   const isBusy = isAnalyzing || isTranscribing;
 
   return (
-    <div className="space-y-6 w-full" data-testid="speech-input-section">
-      {/* Main Glass Voice Card */}
+    <div className="space-y-4 w-full" data-testid="speech-input-section">
+      {/* Main Acoustic Studio Card */}
       <div
-        className="relative rounded-3xl p-6 md:p-8 transition-all duration-300"
+        className="relative rounded-2xl p-6 md:p-8 transition-all duration-300"
         style={{
           background: "var(--card-glass-bg)",
           border: "1px solid var(--card-glass-border)",
@@ -213,21 +213,47 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
           boxShadow: "var(--card-glass-shadow)",
         }}
       >
+        {/* Studio Header */}
+        <div
+          className="flex items-center justify-between pb-3.5 mb-5 border-b"
+          style={{ borderColor: "var(--divider-subtle)" }}
+        >
+          <div className="flex items-center gap-2">
+            <Radio size={13} style={{ color: isRecording ? "var(--aura-terracotta)" : "var(--aura-sage)" }} />
+            <span
+              className="text-[10px] font-mono uppercase tracking-[0.18em]"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Acoustic Capture // Vocal Cadence
+            </span>
+          </div>
+          <span
+            className="text-xs font-mono font-medium"
+            style={{ color: isRecording ? "var(--aura-terracotta)" : "var(--text-muted)" }}
+          >
+            {formatTimer(seconds)}
+          </span>
+        </div>
+
         {/* Title & Guidance */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-4">
           <h3
-            className="font-display text-xl md:text-2xl font-medium mb-1"
+            className="font-display text-2xl md:text-3xl font-medium mb-1"
             style={{ color: "var(--text-primary)" }}
           >
-            {isRecording ? "I'm listening..." : isTranscribing ? "Transcribing speech..." : "Speak from your heart"}
+            {isRecording
+              ? "Listening to your voice..."
+              : isTranscribing
+              ? "Transcribing vocal cadence..."
+              : "Speak from your heart"}
           </h3>
-          <p className="text-xs md:text-sm font-light" style={{ color: "var(--text-muted)" }}>
-            There's no right or wrong here. Express how you feel.
+          <p className="text-xs md:text-sm font-light" style={{ color: "var(--text-secondary)" }}>
+            Speak unhurriedly; pauses and shifts in tone are part of your reflection.
           </p>
         </div>
 
         {/* Central Audio Waveform & Mic Button */}
-        <div className="relative flex flex-col items-center justify-center my-4 py-4">
+        <div className="relative flex flex-col items-center justify-center my-4 py-2">
           <div className="w-full max-w-md px-4">
             <ReactiveWaveform isRecording={isRecording} analyserRef={analyserRef} />
           </div>
@@ -238,59 +264,61 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
               <>
                 <div
                   className="absolute inset-0 rounded-full animate-pulse-ring"
-                  style={{ background: "rgba(155, 108, 255, 0.35)", transform: "scale(1.4)" }}
+                  style={{ background: "rgba(224, 122, 95, 0.28)", transform: "scale(1.35)" }}
                 />
                 <div
                   className="absolute inset-0 rounded-full animate-pulse-ring"
-                  style={{ background: "rgba(96, 165, 250, 0.2)", transform: "scale(1.8)", animationDelay: "0.4s" }}
+                  style={{ background: "rgba(212, 163, 115, 0.16)", transform: "scale(1.7)", animationDelay: "0.4s" }}
                 />
               </>
             )}
 
             <motion.button
+              type="button"
               data-testid="record-btn"
               onClick={toggleRecording}
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.96 }}
               className="relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 z-10"
               style={{
                 background: isRecording
-                  ? "radial-gradient(circle, #EC4899 0%, #8B5CF6 100%)"
-                  : "linear-gradient(135deg, rgba(155, 108, 255, 0.25), rgba(101, 120, 255, 0.15))",
-                border: isRecording ? "2px solid rgba(255, 255, 255, 0.6)" : "1.5px solid rgba(155, 108, 255, 0.4)",
+                  ? "linear-gradient(135deg, #E07A5F 0%, #D4A373 100%)"
+                  : "var(--chip-active-bg)",
+                border: isRecording
+                  ? "2px solid rgba(255, 255, 255, 0.55)"
+                  : "1.5px solid var(--border-strong)",
                 boxShadow: isRecording
-                  ? "0 0 50px rgba(236, 72, 153, 0.6), 0 0 30px rgba(139, 92, 246, 0.4)"
-                  : "0 0 24px rgba(155, 108, 255, 0.2)",
+                  ? "0 12px 36px rgba(224, 122, 95, 0.45)"
+                  : "var(--card-glass-shadow)",
+                color: isRecording ? "#FFFFFF" : "var(--aura-gold)",
               }}
               disabled={isBusy && !isRecording}
             >
               {isRecording ? (
-                <MicOff size={28} className="text-white" />
+                <MicOff size={26} />
               ) : isTranscribing ? (
-                <Loader2 size={28} className="animate-spin text-violet-500 dark:text-violet-300" />
+                <Loader2 size={26} className="animate-spin" />
               ) : (
-                <Mic size={28} className="text-violet-500 dark:text-violet-300" />
+                <Mic size={26} />
               )}
             </motion.button>
 
-            {/* Timer Readout */}
-            <div className="mt-3 text-center">
-              <span
-                className="font-mono text-sm font-semibold tracking-wider"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {formatTimer(seconds)}
-              </span>
-              <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                {isRecording ? "Tap to stop" : isTranscribing ? "Processing..." : "Tap to speak"}
-              </p>
-            </div>
+            <p className="text-[11px] font-mono mt-3" style={{ color: "var(--text-muted)" }}>
+              {isRecording ? "Tap to finish recording" : isTranscribing ? "Processing audio..." : "Tap microphone to begin"}
+            </p>
           </div>
         </div>
 
         {/* Error message */}
         {error && (
-          <div className="p-3 rounded-xl mb-4 bg-red-500/10 border border-red-500/20 text-center text-xs text-red-500">
+          <div
+            className="p-3 rounded-xl mb-4 text-center text-xs"
+            style={{
+              background: "rgba(224, 122, 95, 0.12)",
+              border: "1px solid rgba(224, 122, 95, 0.35)",
+              color: "var(--aura-terracotta)",
+            }}
+          >
             {error}
           </div>
         )}
@@ -298,67 +326,72 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
         {/* Live Transcript / Result Text Area */}
         {transcript && (
           <div
-            className="mt-4 p-4 rounded-2xl"
+            className="mt-4 p-4 rounded-xl"
             style={{
               background: "var(--control-bg)",
-              border: "1px solid var(--border-subtle)",
+              border: "1px solid var(--border-strong)",
             }}
           >
-            <p className="text-xs text-violet-500 dark:text-violet-400 font-semibold mb-1">Transcribed words:</p>
+            <p
+              className="text-[10px] font-mono uppercase tracking-wider mb-1.5"
+              style={{ color: "var(--aura-gold)" }}
+            >
+              Transcribed Utterance:
+            </p>
             <p
               data-testid="speech-transcript"
-              className="text-sm md:text-base font-light italic"
+              className="font-display text-base md:text-lg italic leading-relaxed"
               style={{ color: "var(--text-primary)" }}
             >
-              "{transcript}"
+              “{transcript}”
             </p>
           </div>
         )}
 
-        {/* 3 Guidance Pills */}
+        {/* 3 Studio Notes */}
         <div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 my-6 pt-4"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 my-5 pt-4"
           style={{ borderTop: "1px solid var(--divider-subtle)" }}
         >
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-xl"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
             style={{
               background: "var(--control-bg)",
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <User size={13} className="text-violet-500 dark:text-violet-400 shrink-0" />
+            <User size={14} style={{ color: "var(--aura-gold)" }} className="shrink-0" />
             <div>
-              <p className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>Speak naturally</p>
-              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>No need to be perfect</p>
+              <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>Speak naturally</p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Unscripted thoughts welcome</p>
             </div>
           </div>
 
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-xl"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
             style={{
               background: "var(--control-bg)",
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <Heart size={13} className="text-pink-500 dark:text-pink-400 shrink-0" />
+            <Heart size={14} style={{ color: "var(--aura-terracotta)" }} className="shrink-0" />
             <div>
-              <p className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>We're here for you</p>
-              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Safe. Private. Non-judgmental.</p>
+              <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>Non-judgmental</p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Private acoustic session</p>
             </div>
           </div>
 
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-xl"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
             style={{
               background: "var(--control-bg)",
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <Clock size={13} className="text-blue-500 dark:text-blue-400 shrink-0" />
+            <Clock size={14} style={{ color: "var(--aura-sage)" }} className="shrink-0" />
             <div>
-              <p className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>Take your time</p>
-              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>There's no rush</p>
+              <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>Unhurried pace</p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Take all the time you need</p>
             </div>
           </div>
         </div>
@@ -369,19 +402,20 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
           style={{ borderTop: "1px solid var(--divider-subtle)" }}
         >
           <p
-            className="text-xs font-light hidden sm:block"
+            className="text-xs font-mono hidden sm:block"
             style={{ color: "var(--text-muted)" }}
           >
-            {transcript ? `${transcript.split(" ").length} words recorded` : "Press Enter to submit"}
+            {transcript ? `${transcript.split(/\s+/).length} words captured` : "Record a voice note to reflect"}
           </p>
 
           <motion.button
+            type="button"
             data-testid="analyze-speech-btn"
             onClick={handleSubmit}
             disabled={!transcript.trim() || isBusy}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="btn-mirror-me ml-auto flex items-center gap-2.5 px-8 py-3.5 rounded-full text-sm font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="btn-mirror-me ml-auto flex items-center gap-2.5 px-7 py-3 rounded-full text-sm font-semibold transition-all disabled:opacity-35 disabled:cursor-not-allowed"
           >
             {isAnalyzing ? (
               <>
@@ -391,85 +425,10 @@ export const SpeechInput = ({ onAnalyze, isAnalyzing, t, language }) => {
             ) : (
               <>
                 <span>{t("mirrorMe")}</span>
-                <Sparkles size={15} />
+                <ArrowUpRight size={16} />
               </>
             )}
           </motion.button>
-        </div>
-      </div>
-
-      {/* Bottom Info Bar: "How it works" + "Your safe space" */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-4 items-stretch">
-        <div
-          className="p-4 rounded-2xl flex flex-col justify-between"
-          style={{
-            background: "var(--card-glass-bg)",
-            border: "1px solid var(--card-glass-border)",
-            boxShadow: "var(--card-glass-shadow)",
-          }}
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={13} className="text-violet-500 dark:text-violet-400" />
-            <span
-              className="text-xs font-semibold"
-              style={{ color: "var(--text-primary)" }}
-            >
-              How it works
-            </span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 text-left">
-            <div className="space-y-1">
-              <span className="text-[11px] font-semibold text-violet-500 dark:text-violet-300">1. Express</span>
-              <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                Speak freely about what's in your heart.
-              </p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-[11px] font-semibold text-blue-500 dark:text-blue-300">2. Reflect</span>
-              <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                I analyze your words, tone & emotions.
-              </p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-[11px] font-semibold text-pink-500 dark:text-pink-300">3. Understand</span>
-              <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                Gain insights and clarity about yourself.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="p-4 rounded-2xl flex flex-col justify-between"
-          style={{
-            background: "var(--card-glass-bg)",
-            border: "1px solid var(--card-glass-border)",
-            boxShadow: "var(--card-glass-shadow)",
-          }}
-        >
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" />
-              <span
-                className="text-xs font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                Your safe space
-              </span>
-            </div>
-            <p
-              className="text-[11px] leading-relaxed"
-              style={{ color: "var(--text-muted)" }}
-            >
-              Everything you share is private, secure, and never shared.
-            </p>
-          </div>
-          <div className="mt-2">
-            <span className="text-[10px] font-medium text-violet-500 dark:text-violet-400 hover:underline flex items-center gap-1 cursor-pointer">
-              Learn more <ArrowRight size={10} />
-            </span>
-          </div>
         </div>
       </div>
     </div>

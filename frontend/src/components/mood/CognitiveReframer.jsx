@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Brain, Sparkles, ChevronRight, CheckCircle2, HeartHandshake, Compass } from "lucide-react";
+import { Brain, CheckCircle2, Compass, Feather, ArrowRight } from "lucide-react";
 
-export const CognitiveReframer = ({ cognitiveData, t = (key) => key }) => {
+export const CognitiveReframer = ({ cognitiveData, onFollowUp, t = (key) => key }) => {
   const [activePromptIdx, setActivePromptIdx] = useState(0);
+  const [reframeReply, setReframeReply] = useState("");
 
   if (!cognitiveData) return null;
 
@@ -18,7 +18,7 @@ export const CognitiveReframer = ({ cognitiveData, t = (key) => key }) => {
     <div
       id="cognitive-reframer-section"
       data-testid="cognitive-reframer-card"
-      className="rounded-3xl p-5 sm:p-6 backdrop-blur-2xl transition-all space-y-4 scroll-mt-6"
+      className="rounded-2xl p-5 sm:p-6 transition-all space-y-4 scroll-mt-6"
       style={{
         background: "var(--card-glass-bg)",
         border: "1px solid var(--card-glass-border)",
@@ -26,26 +26,50 @@ export const CognitiveReframer = ({ cognitiveData, t = (key) => key }) => {
       }}
     >
       {/* Top Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-500/20 text-blue-300 border border-blue-500/30">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{
+              background: "var(--control-bg)",
+              border: "1px solid var(--border-strong)",
+              color: "var(--aura-sky)",
+            }}
+          >
             <Compass size={16} />
           </div>
           <div>
-            <h4 className="font-display text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
+            <h4
+              className="font-display text-base sm:text-lg font-medium tracking-tight flex items-center gap-2"
+              style={{ color: "var(--text-primary)" }}
+            >
               <span>{t("reframeTitle")}</span>
-              <span className="text-[10px] font-mono font-semibold uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              <span
+                className="text-[9px] font-mono font-semibold uppercase px-2 py-0.5 rounded"
+                style={{
+                  background: "var(--control-bg)",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--aura-sky)",
+                }}
+              >
                 {t("reframeBadge")}
               </span>
             </h4>
-            <p className="text-[11px] text-white/50">
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
               {t("reframeHint")}
             </p>
           </div>
         </div>
 
         {/* Distortion Pill */}
-        <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 border border-blue-500/25 text-blue-300">
+        <div
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium"
+          style={{
+            background: "var(--chip-active-bg)",
+            border: "1px solid var(--border-strong)",
+            color: "var(--aura-gold)",
+          }}
+        >
           <Brain size={13} />
           <span>{distortion_detected}</span>
         </div>
@@ -53,63 +77,125 @@ export const CognitiveReframer = ({ cognitiveData, t = (key) => key }) => {
 
       {/* Explanation Box */}
       <div
-        className="p-3.5 rounded-2xl text-xs leading-relaxed text-white/80 border border-white/5"
-        style={{ background: "rgba(0, 0, 0, 0.25)" }}
+        className="p-4 rounded-xl text-xs sm:text-sm leading-relaxed"
+        style={{
+          background: "var(--control-bg)",
+          border: "1px solid var(--border-subtle)",
+          color: "var(--text-secondary)",
+        }}
       >
-        <span className="font-semibold text-blue-300">{t("mindPattern")}: </span>
+        <span className="font-semibold" style={{ color: "var(--aura-gold)" }}>
+          {t("mindPattern")}:{" "}
+        </span>
         <span>{explanation}</span>
       </div>
 
       {/* Interactive Reframing Prompts */}
       {reframing_prompts.length > 0 && (
         <div className="space-y-2.5 pt-1">
-          <span className="text-xs font-mono font-semibold uppercase text-blue-300 tracking-wider block">
+          <span
+            className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] block"
+            style={{ color: "var(--text-muted)" }}
+          >
             {t("reframeInquiries")}
           </span>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {reframing_prompts.map((prompt, idx) => {
               const isActive = activePromptIdx === idx;
               return (
                 <button
+                  type="button"
                   key={idx}
                   onClick={() => setActivePromptIdx(idx)}
-                  className={`p-3 rounded-2xl text-left text-xs transition-all flex flex-col justify-between gap-2 border ${
-                    isActive
-                      ? "bg-blue-500/20 border-blue-500/50 text-white shadow-lg"
-                      : "bg-white/[0.03] border-white/10 text-white/60 hover:text-white hover:bg-white/[0.06]"
-                  }`}
+                  className="p-3.5 rounded-xl text-left text-xs transition-all flex flex-col justify-between gap-2"
+                  style={{
+                    background: isActive ? "var(--chip-active-bg)" : "var(--control-bg)",
+                    border: isActive
+                      ? "1px solid var(--border-strong)"
+                      : "1px solid var(--border-subtle)",
+                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                  }}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className="text-[10px] font-mono font-semibold text-blue-400">
+                    <span
+                      className="text-[10px] font-mono font-semibold uppercase"
+                      style={{ color: isActive ? "var(--aura-gold)" : "var(--text-muted)" }}
+                    >
                       {t("reframePrompt")} 0{idx + 1}
                     </span>
-                    {isActive && <CheckCircle2 size={12} className="text-blue-300" />}
+                    {isActive && (
+                      <CheckCircle2 size={13} style={{ color: "var(--aura-sage)" }} />
+                    )}
                   </div>
-                  <p className="leading-snug font-medium line-clamp-3">
-                    {prompt}
+                  <p className="leading-snug font-display text-sm">
+                    “{prompt}”
                   </p>
                 </button>
               );
             })}
           </div>
+
+          {/* Interactive Response / Follow-up Bar for Selected Prompt */}
+          {onFollowUp && reframing_prompts[activePromptIdx] && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const selectedQ = reframing_prompts[activePromptIdx];
+                const userReply = reframeReply.trim();
+                const query = userReply
+                  ? `Prompt: "${selectedQ}" — My reflection: ${userReply}`
+                  : selectedQ;
+                onFollowUp(query);
+              }}
+              className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+            >
+              <input
+                type="text"
+                value={reframeReply}
+                onChange={(e) => setReframeReply(e.target.value)}
+                placeholder={reframing_prompts[activePromptIdx]}
+                className="flex-1 px-4 py-2.5 rounded-xl text-xs focus:outline-none"
+                style={{
+                  background: "var(--control-bg)",
+                  border: "1px solid var(--control-border)",
+                  color: "var(--text-primary)",
+                }}
+              />
+              <button
+                type="submit"
+                data-testid="reframe-reflect-btn"
+                className="btn-mirror-me px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0"
+              >
+                <span>{t("followUpReflect") || "Reflect"}</span>
+                <ArrowRight size={13} />
+              </button>
+            </form>
+          )}
         </div>
       )}
 
       {/* Grounding Affirmation Banner */}
       <div
-        className="p-4 rounded-2xl flex items-start gap-3 border border-purple-500/30"
+        className="p-4 rounded-xl flex items-start gap-3"
         style={{
-          background: "linear-gradient(135deg, rgba(155, 108, 255, 0.12) 0%, rgba(102, 183, 255, 0.12) 100%)",
+          background: "var(--chip-active-bg)",
+          border: "1px solid var(--border-strong)",
         }}
       >
-        <Sparkles size={16} className="text-violet-300 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <span className="text-[10px] font-mono uppercase font-bold text-violet-300 block">
+        <Feather size={15} style={{ color: "var(--aura-gold)" }} className="shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <span
+            className="text-[10px] font-mono uppercase tracking-[0.16em] font-semibold block"
+            style={{ color: "var(--aura-gold)" }}
+          >
             {t("groundingAnchor")}
           </span>
-          <p className="text-xs sm:text-sm font-medium text-white/90 leading-relaxed italic">
-            "{grounding_affirmation}"
+          <p
+            className="font-display text-sm sm:text-base italic leading-relaxed"
+            style={{ color: "var(--text-primary)" }}
+          >
+            “{grounding_affirmation}”
           </p>
         </div>
       </div>

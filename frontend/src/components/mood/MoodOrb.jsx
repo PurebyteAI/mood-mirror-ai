@@ -2,29 +2,29 @@ import React from "react";
 import { motion } from "framer-motion";
 
 const MOOD_COLORS = {
-  joy: "#FCD34D",
-  happiness: "#FCD34D",
-  happy: "#FCD34D",
-  sadness: "#60A5FA",
-  sad: "#60A5FA",
-  anger: "#F87171",
-  angry: "#F87171",
-  fear: "#C084FC",
-  surprise: "#FB923C",
-  disgust: "#34D399",
+  joy: "#D4A373",
+  happiness: "#D4A373",
+  happy: "#D4A373",
+  sadness: "#7CA1C4",
+  sad: "#7CA1C4",
+  anger: "#E07A5F",
+  angry: "#E07A5F",
+  fear: "#A78BFA",
+  surprise: "#E9C46A",
+  disgust: "#81B29A",
   neutral: "#A1A1AA",
-  calmness: "#A1A1AA",
-  calm: "#A1A1AA",
-  stress: "#C084FC",
-  stressed: "#C084FC",
-  curiosity: "#FB923C",
-  curious: "#FB923C",
+  calmness: "#81B29A",
+  calm: "#81B29A",
+  stress: "#E07A5F",
+  stressed: "#E07A5F",
+  curiosity: "#D4A373",
+  curious: "#D4A373",
 };
 
 const getOrbColor = (mood) => {
-  if (!mood) return "#C084FC";
+  if (!mood) return "#D4A373";
   const key = mood.toLowerCase();
-  return MOOD_COLORS[key] || "#C084FC";
+  return MOOD_COLORS[key] || "#D4A373";
 };
 
 export const MoodOrb = ({ mood }) => {
@@ -36,39 +36,38 @@ export const MoodOrb = ({ mood }) => {
         data-testid="mood-orb"
         className="absolute animate-breathe"
         style={{
-          top: "30%",
+          top: "28%",
           left: "50%",
-          width: "500px",
-          height: "500px",
+          width: "520px",
+          height: "520px",
           borderRadius: "50%",
-          background: `radial-gradient(circle, ${color}33 0%, ${color}11 40%, transparent 70%)`,
-          filter: "blur(80px)",
+          background: `radial-gradient(circle, ${color}2E 0%, ${color}10 42%, transparent 72%)`,
+          filter: "blur(84px)",
           mixBlendMode: "var(--orb-blend-mode)",
           opacity: "var(--orb-primary-opacity)",
         }}
         animate={{
-          background: `radial-gradient(circle, ${color}33 0%, ${color}11 40%, transparent 70%)`,
+          background: `radial-gradient(circle, ${color}2E 0%, ${color}10 42%, transparent 72%)`,
         }}
         transition={{ duration: 2, ease: "easeInOut" }}
       />
-      {/* Secondary smaller orb */}
       <motion.div
         className="absolute"
         style={{
-          top: "50%",
-          left: "35%",
-          width: "300px",
-          height: "300px",
+          top: "48%",
+          left: "36%",
+          width: "320px",
+          height: "320px",
           borderRadius: "50%",
-          background: `radial-gradient(circle, ${color}22 0%, transparent 60%)`,
-          filter: "blur(60px)",
+          background: `radial-gradient(circle, ${color}20 0%, transparent 62%)`,
+          filter: "blur(64px)",
           mixBlendMode: "var(--orb-blend-mode)",
           opacity: "var(--orb-secondary-opacity)",
         }}
         animate={{
-          scale: [1, 1.2, 1],
+          scale: [1, 1.15, 1],
         }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
       />
     </div>
   );

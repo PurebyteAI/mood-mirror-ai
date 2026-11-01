@@ -16,9 +16,13 @@ const isLocalhost =
   typeof window !== "undefined" &&
   ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
-// Same-origin "/api" is only valid behind the nginx proxy. A static SPA host
-// (Vercel/Render/etc.) has no /api, so fall back to the Hugging Face Space.
+const forceRemote = process.env.REACT_APP_FORCE_REMOTE_BACKEND === "true";
+
+// When running locally on localhost/127.0.0.1, always route to the local FastAPI
+// backend on port 8001 unless REACT_APP_FORCE_REMOTE_BACKEND=true is explicitly set.
 const resolvedBackend =
-  envBackend || (isLocalhost ? "http://localhost:8001" : DEFAULT_REMOTE_BACKEND);
+  isLocalhost && !forceRemote
+    ? "http://localhost:8001"
+    : envBackend || DEFAULT_REMOTE_BACKEND;
 
 export const API_BASE = resolvedBackend === "/api" ? "/api" : `${resolvedBackend}/api`;
